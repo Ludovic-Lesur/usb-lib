@@ -2,6 +2,11 @@
 
 This repository contains a cross-platform USB stack for embedded projects.
 
+| USB features | Device |
+|:---:|:---:|
+| **Control pipe** | :hammer: |
+| **CDC-ACM** class | :hammer: |
+
 # Dependencies
 
 The driver relies on:
@@ -24,3 +29,12 @@ Here is the versions compatibility table:
 | `USB_LIB_HW_INTERFACE_ERROR_BASE_LAST` | `defined` / `undefined` | Last error base of the low level USB driver. |
 | `USBD_CONTROL_INTERFACE_INDEX` | `<value>` | Index of the device control interface. |
 | `USBD_CONTROL_INTERFACE_STRING_DESCRIPTOR_INDEX` | `<value>` | Index of the device control interface string descriptor. |
+| `USBD_CDC` | `defined` / `undefined` | Enable the CDC device class if defined. |
+| `USBD_CDC_COM_INTERFACE_INDEX` | `<value>` | Index of the device CDC COM interface. |
+| `USBD_CDC_COM_INTERFACE_STRING_DESCRIPTOR_INDEX` | `<value>` | Index of the device CDC COM interface string descriptor. |
+| `USBD_CDC_COM_ENDPOINT_NUMBER` | `<value>` | Endpoint number assigned to the device CDC COM interface. |
+| `USBD_CDC_COM_PACKET_SIZE_BYTES` | `<value>` | Maximum packet size of the device CDC COM interface. |
+| `USBD_CDC_DATA_INTERFACE_INDEX` | `<value>` | Index of the device CDC DATA interface. |
+| `USBD_CDC_DATA_INTERFACE_STRING_DESCRIPTOR_INDEX` | `<value>` | Index of the device CDC DATA interface string descriptor. |
+| `USBD_CDC_DATA_ENDPOINT_NUMBER` | `<value>` | Endpoint number assigned to the device CDC DATA interface. |
+| `USBD_CDC_DATA_PACKET_SIZE_BYTES` | `<value>` | Maximum packet size of the device CDC DATA interface. |

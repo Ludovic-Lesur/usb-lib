@@ -10,9 +10,23 @@
 
 /*** USB library compilation flags ***/
 
-#define USB_LIB_HW_INTERFACE_ERROR_BASE_LAST            0
+#define USB_LIB_HW_INTERFACE_ERROR_BASE_LAST                0
 
-#define USBD_CONTROL_INTERFACE_INDEX                    0
-#define USBD_CONTROL_INTERFACE_STRING_DESCRIPTOR_INDEX  0
+#define USBD_CONTROL_INTERFACE_INDEX                        0
+#define USBD_CONTROL_INTERFACE_STRING_DESCRIPTOR_INDEX      0
+
+#define USBD_CDC
+
+#ifdef USBD_CDC
+#define USBD_CDC_COM_INTERFACE_INDEX                        1
+#define USBD_CDC_COM_INTERFACE_STRING_DESCRIPTOR_INDEX      1
+#define USBD_CDC_COM_ENDPOINT_NUMBER                        1
+#define USBD_CDC_COM_PACKET_SIZE_BYTES                      16
+
+#define USBD_CDC_DATA_INTERFACE_INDEX                       2
+#define USBD_CDC_DATA_INTERFACE_STRING_DESCRIPTOR_INDEX     2
+#define USBD_CDC_DATA_ENDPOINT_NUMBER                       2
+#define USBD_CDC_DATA_PACKET_SIZE_BYTES                     1024
+#endif
 
 #endif /* __USB_LIB_FLAGS_H__ */
