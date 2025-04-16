@@ -1,0 +1,18 @@
+/*
+ * usb_lib_flags.h
+ *
+ *  Created on: 16 apr. 2025
+ *      Author: Ludo
+ */
+
+#ifndef __USB_LIB_FLAGS_H__
+#define __USB_LIB_FLAGS_H__
+
+/*** USB library compilation flags ***/
+
+#define USB_LIB_HW_INTERFACE_ERROR_BASE_LAST            0
+
+#define USBD_CONTROL_INTERFACE_INDEX                    0
+#define USBD_CONTROL_INTERFACE_STRING_DESCRIPTOR_INDEX  0
+
+#endif /* __USB_LIB_FLAGS_H__ */
