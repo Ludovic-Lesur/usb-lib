@@ -10,13 +10,13 @@
 
 #include "types.h"
 #include "types/usb_class.h"
+#include "types/usb_configuration.h"
 #include "types/usb_descriptor.h"
 #include "types/usb_types.h"
 
 /*** USB DESCRIPTOR macros ***/
 
-#define USB_DESCRIPTOR_USB_VERSION      0x0200
-#define USB_DESCRIPTOR_PROTOCOL_CUSTOM  0xFF
+#define USB_DESCRIPTOR_USB_VERSION  0x0200
 
 /*** USB DEVICE structures ***/
 
@@ -56,5 +56,18 @@ typedef struct {
     uint8_t bNumConfigurations;
     uint8_t bReserved;
 } __attribute__((packed)) USB_device_qualifier_descriptor_t;
+
+/*!******************************************************************
+ * \struct USB_device_t
+ * \brief USB device structure.
+ *******************************************************************/
+typedef struct {
+    const USB_device_descriptor_t* descriptor;
+    const USB_device_qualifier_descriptor_t* qualifier_descriptor;
+    const USB_configuration_t** configuration_list;
+    const uint8_t number_of_configurations;
+    const char_t** string_descriptor_list;
+    const uint8_t number_of_string_descriptors;
+} USB_device_t;
 
 #endif /* __USB_DEVICE_H__ */

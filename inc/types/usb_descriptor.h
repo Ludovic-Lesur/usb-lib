@@ -8,6 +8,12 @@
 #ifndef __USB_DESCRIPTOR_H__
 #define __USB_DESCRIPTOR_H__
 
+/*** USB DESCRIPTOR macros ***/
+
+#define USB_STRING_DESCRIPTOR_INDEX_LANGID  0
+
+/*** USB DESCRIPTOR structures ***/
+
 /*!******************************************************************
  * \enum USB_descriptor_type_t
  * \brief USB descriptor types list.

@@ -13,6 +13,7 @@
 #include "device/usbd.h"
 #include "device/usbd_hw.h"
 #include "error.h"
+#include "strings.h"
 #include "types.h"
 #include "types/usb_device.h"
 #include "types/usb_descriptor.h"
@@ -23,7 +24,10 @@
 
 /*** USBD CONTROL local macros ***/
 
-#define USBD_CONTROL_PACKET_SIZE_BYTES  64
+#define USBD_CONTROL_PACKET_SIZE_BYTES              64
+
+#define USBD_CONTROL_DESCRIPTOR_BUFFER_SIZE_BYTES   1024
+#define USBD_CONTROL_DESCRIPTOR_TOTAL_LENGTH_INDEX  2
 
 /*** USBD CONTROL local functions declaration ***/
 
@@ -50,7 +54,10 @@ typedef union {
 /*******************************************************************/
 typedef struct {
     volatile USBD_CONTROL_flags_t flags;
+    const USB_device_t* device;
     USBD_CONTROL_requests_callbacks_t* requests_callbacks;
+    uint8_t full_configuration_descriptor[USBD_CONTROL_DESCRIPTOR_BUFFER_SIZE_BYTES];
+    uint8_t string_descriptor[USBD_CONTROL_DESCRIPTOR_BUFFER_SIZE_BYTES];
     USB_data_t data_out;
     USB_data_t data_in;
 } USBD_CONTROL_context_t;
@@ -129,14 +136,15 @@ static const USB_interface_descriptor_t USBD_CONTROL_INTERFACE_DESCRIPTOR = {
     .bDescriptorType = USB_DESCRIPTOR_TYPE_INTERFACE,
     .bInterfaceNumber = USBD_CONTROL_INTERFACE_INDEX,
     .bAlternateSetting = 0,
-    .bInterfaceClass = USB_CLASS_CODE_VENDOR_SPECIFIC,
+    .bInterfaceClass = 0,
     .bInterfaceSubClass = 0,
-    .bInterfaceProtocol = USB_DESCRIPTOR_PROTOCOL_CUSTOM,
+    .bInterfaceProtocol = 0,
     .iInterface = USBD_CONTROL_INTERFACE_STRING_DESCRIPTOR_INDEX
 };
 
 static USBD_CONTROL_context_t usbd_control_ctx = {
     .flags.all = 0,
+    .device = NULL,
     .requests_callbacks = NULL
 };
 
@@ -149,6 +157,117 @@ const USB_interface_t USBD_CONTROL_INTERFACE = {
 };
 
 /*** USBD CONTROL local functions ***/
+
+/*******************************************************************/
+static USBD_CONTROL_status_t _USBD_CONTROL_build_full_configuration_descriptor(uint8_t index) {
+    // Local variables.
+    USBD_CONTROL_status_t status = USBD_CONTROL_SUCCESS;
+    const USB_configuration_t* configuration_ptr = NULL;
+    const USB_interface_t* interface_ptr = NULL;
+    const USB_endpoint_t* endpoint_ptr = NULL;
+    uint8_t* descriptor_ptr = NULL;
+    uint8_t interface_idx = 0;
+    uint8_t endpoint_idx = 0;
+    uint32_t full_idx = 0;
+    uint32_t idx = 0;
+    // Check index.
+    if (index >= (usbd_control_ctx.device->number_of_configurations)) {
+        status = USBD_CONTROL_ERROR_CONFIGURATION_INDEX;
+        goto errors;
+    }
+    // Set configuration pointer.
+    configuration_ptr = usbd_control_ctx.device->configuration_list[index];
+    // Build full configuration descriptor.
+    descriptor_ptr = (uint8_t*) (configuration_ptr->descriptor);
+    for (idx = 0; idx < (configuration_ptr->descriptor->bLength); idx++) {
+        usbd_control_ctx.full_configuration_descriptor[full_idx++] = descriptor_ptr[idx];
+    }
+    // Interfaces loop.
+    for (interface_idx = (USBD_CONTROL_INTERFACE_INDEX + 1); interface_idx < (configuration_ptr->number_of_interfaces); interface_idx++) {
+        // Update pointer.
+        interface_ptr = configuration_ptr->interface_list[interface_idx];
+        descriptor_ptr = (uint8_t*) (interface_ptr->descriptor);
+        // Append interface descriptor.
+        for (idx = 0; idx < (interface_ptr->descriptor)->bLength; idx++) {
+            usbd_control_ctx.full_configuration_descriptor[full_idx++] = descriptor_ptr[idx];
+        }
+        // Endpoints loop.
+        for (endpoint_idx = 0; endpoint_idx < (interface_ptr->number_of_endpoints); endpoint_idx++) {
+            // Update pointer.
+            endpoint_ptr = interface_ptr->endpoint_list[endpoint_idx];
+            descriptor_ptr = (uint8_t*) (endpoint_ptr->descriptor);
+            // Append endpoint descriptor.
+            for (idx = 0; idx < (endpoint_ptr->descriptor)->bLength; idx++) {
+                usbd_control_ctx.full_configuration_descriptor[full_idx++] = descriptor_ptr[idx];
+            }
+        }
+    }
+    // Update total length field.
+    usbd_control_ctx.full_configuration_descriptor[USBD_CONTROL_DESCRIPTOR_TOTAL_LENGTH_INDEX] = full_idx;
+errors:
+    return status;
+}
+
+/*******************************************************************/
+static USBD_CONTROL_status_t _USBD_CONTROL_get_descriptor(USB_descriptor_type_t type, uint8_t index, uint8_t** descriptor_ptr, uint32_t* descriptor_size_bytes) {
+    // Local variables.
+    USBD_CONTROL_status_t status = USBD_CONTROL_SUCCESS;
+    STRING_status_t string_status = STRING_SUCCESS;
+    uint32_t str_size = 0;
+    uint32_t full_idx = 0;
+    uint32_t idx = 0;
+    // Reset output.
+    (*descriptor_ptr) = NULL;
+    (*descriptor_size_bytes) = 0;
+    // Check type.
+    switch (type) {
+    case USB_DESCRIPTOR_TYPE_DEVICE:
+        (*descriptor_ptr) = (uint8_t*) (usbd_control_ctx.device->descriptor);
+        (*descriptor_size_bytes) = usbd_control_ctx.device->descriptor->bLength;
+        break;
+    case USB_DESCRIPTOR_TYPE_DEVICE_QUALIFIER:
+        (*descriptor_ptr) = (uint8_t*) (usbd_control_ctx.device->qualifier_descriptor);
+        (*descriptor_size_bytes) = usbd_control_ctx.device->qualifier_descriptor->bLength;
+        break;
+    case USB_DESCRIPTOR_TYPE_CONFIGURATION:
+    case USB_DESCRIPTOR_TYPE_OTHER_SPEED_CONFIGURATION:
+        // Build configuration descriptor.
+        status = _USBD_CONTROL_build_full_configuration_descriptor(index);
+        if (status != USBD_CONTROL_SUCCESS) goto errors;
+        // Update pointers.
+        (*descriptor_ptr) = (uint8_t*) &(usbd_control_ctx.full_configuration_descriptor);
+        (*descriptor_size_bytes) = usbd_control_ctx.full_configuration_descriptor[USBD_CONTROL_DESCRIPTOR_TOTAL_LENGTH_INDEX];
+        break;
+    case USB_DESCRIPTOR_TYPE_STRING:
+        // Check index.
+        if (index >= usbd_control_ctx.device->number_of_string_descriptors) {
+            status = USBD_CONTROL_ERROR_STRING_DESCRIPTOR_INDEX;
+            goto errors;
+        }
+        // Get string length.
+        string_status = STRING_get_size((char_t*) (usbd_control_ctx.device->string_descriptor_list[index]), &str_size);
+        STRING_exit_error(USBD_CONTROL_ERROR_BASE_STRING);
+        // Build string descriptor.
+        usbd_control_ctx.string_descriptor[full_idx++] = (sizeof(USB_string_descriptor_t) + (str_size << ((index == USB_STRING_DESCRIPTOR_INDEX_LANGID) ? 0 : 1)));
+        usbd_control_ctx.string_descriptor[full_idx++] = USB_DESCRIPTOR_TYPE_STRING;
+        // Append string.
+        for (idx = 0; idx < str_size; idx++) {
+            usbd_control_ctx.string_descriptor[full_idx++] = usbd_control_ctx.device->string_descriptor_list[index][idx];
+            // Specific case of language ID.
+            if (index != USB_STRING_DESCRIPTOR_INDEX_LANGID) {
+                usbd_control_ctx.string_descriptor[full_idx++] = 0x00;
+            }
+        }
+        (*descriptor_ptr) = (uint8_t*) &(usbd_control_ctx.string_descriptor);
+        (*descriptor_size_bytes) = usbd_control_ctx.string_descriptor[0];
+        break;
+    default:
+        status = USBD_CONTROL_ERROR_DESCRIPTOR_TYPE;
+        goto errors;
+    }
+errors:
+    return status;
+}
 
 /*******************************************************************/
 static USBD_CONTROL_status_t _USBD_CONTROL_decode_standard_request(USB_data_t* usb_data_out, USB_request_operation_t* request_operation, USB_data_t* usb_data_in) {
@@ -194,7 +313,7 @@ static USBD_CONTROL_status_t _USBD_CONTROL_decode_standard_request(USB_data_t* u
     switch (request_packet->bRequest) {
     case USB_REQUEST_ID_GET_DESCRIPTOR:
         // Read descriptor.
-        status = usbd_control_ctx.requests_callbacks->get_descriptor(wValue_high, wValue_low, &(usb_data_in->data), &(usb_data_in->size_bytes));
+        status = _USBD_CONTROL_get_descriptor(wValue_high, wValue_low, &(usb_data_in->data), &(usb_data_in->size_bytes));
         if (status != USBD_CONTROL_SUCCESS) goto errors;
         break;
     case USB_REQUEST_ID_SET_ADDRESS:
@@ -253,13 +372,13 @@ static void _USBD_CONTROL_endpoint_in_callback(void) {
 /*** USB functions ***/
 
 /*******************************************************************/
-USBD_CONTROL_status_t USBD_CONTROL_init(USBD_CONTROL_requests_callbacks_t* requests_callbacks) {
+USBD_CONTROL_status_t USBD_CONTROL_init(const USB_device_t* device, USBD_CONTROL_requests_callbacks_t* requests_callbacks) {
     // Local variables.
     USBD_CONTROL_status_t status = USBD_CONTROL_SUCCESS;
     USBD_status_t usbd_status = USBD_SUCCESS;
     uint8_t idx = 0;
     // Check parameter.
-    if (requests_callbacks == NULL) {
+    if ((device == NULL) || (requests_callbacks == NULL)) {
         status = USBD_CONTROL_ERROR_NULL_PARAMETER;
         goto errors;
     }
@@ -270,7 +389,8 @@ USBD_CONTROL_status_t USBD_CONTROL_init(USBD_CONTROL_requests_callbacks_t* reque
     }
     // Reset flags.
     usbd_control_ctx.flags.all = 0;
-    // Register callbacks.
+    // Register device and callbacks.
+    usbd_control_ctx.device = device;
     usbd_control_ctx.requests_callbacks = requests_callbacks;
     // Register endpoints.
     for (idx = 0; idx < (USBD_CONTROL_INTERFACE.number_of_endpoints); idx++) {
@@ -297,8 +417,9 @@ USBD_CONTROL_status_t USBD_CONTROL_de_init(void) {
         status = USBD_CONTROL_ERROR_UNINITIALIZED;
         goto errors;
     }
-    // Reset callbacks.
+    // Reset context.
     usbd_control_ctx.flags.all = 0;
+    usbd_control_ctx.device = NULL;
     usbd_control_ctx.requests_callbacks = NULL;
     // Unregister endpoints.
     for (idx = 0; idx < (USBD_CONTROL_INTERFACE.number_of_endpoints); idx++) {

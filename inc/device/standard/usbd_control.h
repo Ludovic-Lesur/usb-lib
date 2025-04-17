@@ -12,6 +12,7 @@
 #include "usb_lib_flags.h"
 #endif
 #include "error.h"
+#include "strings.h"
 #include "types.h"
 #include "types/usb_device.h"
 #include "types/usb_endpoint.h"
@@ -36,19 +37,16 @@ typedef enum {
     USBD_CONTROL_ERROR_STANDARD_REQUEST_SIZE,
     USBD_CONTROL_ERROR_BREQUEST,
     USBD_CONTROL_ERROR_DESCRIPTOR_TYPE,
+    USBD_CONTROL_ERROR_CONFIGURATION_INDEX,
+    USBD_CONTROL_ERROR_STRING_DESCRIPTOR_INDEX,
     // Low level drivers errors.
     USBD_CONTROL_ERROR_BASE_HW_INTERFACE = ERROR_BASE_STEP,
+    USBD_CONTROL_ERROR_BASE_STRING = (USBD_CONTROL_ERROR_BASE_HW_INTERFACE + USB_LIB_HW_INTERFACE_ERROR_BASE_LAST),
     // Last base value.
-    USBD_CONTROL_ERROR_BASE_LAST = (USBD_CONTROL_ERROR_BASE_HW_INTERFACE + USB_LIB_HW_INTERFACE_ERROR_BASE_LAST)
+    USBD_CONTROL_ERROR_BASE_LAST = (USBD_CONTROL_ERROR_BASE_STRING + STRING_ERROR_BASE_LAST)
 } USBD_CONTROL_status_t;
 
 #ifndef USB_LIB_DISABLE
-
-/*!******************************************************************
- * \fn USB_control_get_descriptor_cb_t
- * \brief USBD CONTROL get descriptor request callback.
- *******************************************************************/
-typedef USBD_CONTROL_status_t (*USB_control_get_descriptor_cb_t)(USB_descriptor_type_t type, uint8_t index, uint8_t** descriptor_ptr, uint32_t* descriptor_size_bytes);
 
 /*!******************************************************************
  * \fn USB_control_set_configuration_cb_t
@@ -61,7 +59,6 @@ typedef USBD_CONTROL_status_t (*USB_control_set_configuration_cb_t)(uint8_t inde
  * \brief USBD CONTROL standard requests callbacks.
  *******************************************************************/
 typedef struct {
-    USB_control_get_descriptor_cb_t get_descriptor;
     USB_control_set_configuration_cb_t set_configuration;
 } USBD_CONTROL_requests_callbacks_t;
 
@@ -78,7 +75,7 @@ extern const USB_interface_t USBD_CONTROL_INTERFACE;
  * \param[out]  none
  * \retval      Function execution status.
  *******************************************************************/
-USBD_CONTROL_status_t USBD_CONTROL_init(USBD_CONTROL_requests_callbacks_t* requests_callbacks);
+USBD_CONTROL_status_t USBD_CONTROL_init(const USB_device_t* device, USBD_CONTROL_requests_callbacks_t* requests_callbacks);
 
 /*!******************************************************************
  * \fn USBD_CONTROL_status_t USBD_CONTROL_de_init(void)
