@@ -10,7 +10,7 @@
 
 #include "types.h"
 
-/*** USB macros ***/
+/*** USB TYPES macros ***/
 
 #define USB_SETUP_PACKET_SIZE_BYTES     8
 
@@ -18,7 +18,7 @@
 #define USB_FS_CONTROL_PACKET_SIZE_MAX  64
 #define USB_HS_CONTROL_PACKET_SIZE_MAX  64
 
-/*** USB structures ***/
+/*** USB TYPES structures ***/
 
 /*!******************************************************************
  * \struct USB_data_t

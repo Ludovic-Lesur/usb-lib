@@ -14,7 +14,7 @@
 #include "common/usb_types.h"
 #include "types.h"
 
-/*** USB DESCRIPTOR macros ***/
+/*** USB DEVICE macros ***/
 
 #define USB_DESCRIPTOR_USB_VERSION  0x0200
 
