@@ -7,8 +7,9 @@
 
 #include "device/usbd_hw.h"
 
+#include "common/usb_endpoint.h"
+#include "common/usb_types.h"
 #include "device/usbd.h"
-#include "types/usb_endpoint.h"
 #include "types.h"
 
 #ifndef USB_LIB_DISABLE

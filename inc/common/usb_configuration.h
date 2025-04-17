@@ -8,8 +8,9 @@
 #ifndef __USB_CONFIGURATION_H__
 #define __USB_CONFIGURATION_H__
 
+#include "common/usb_descriptor.h"
+#include "common/usb_interface.h"
 #include "types.h"
-#include "types/usb_interface.h"
 
 /*** USB CONFIGURATION structures ***/
 

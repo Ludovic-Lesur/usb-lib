@@ -8,6 +8,9 @@
 #ifndef __USB_DESCRIPTOR_H__
 #define __USB_DESCRIPTOR_H__
 
+#include "common/usb_descriptor.h"
+#include "types.h"
+
 /*** USB DESCRIPTOR macros ***/
 
 #define USB_STRING_DESCRIPTOR_INDEX_LANGID  0

@@ -11,10 +11,10 @@
 #ifndef USB_LIB_DISABLE_FLAGS_FILE
 #include "usb_lib_flags.h"
 #endif
+#include "common/usb_interface.h"
+#include "common/usb_types.h"
 #include "error.h"
 #include "types.h"
-#include "types/usb_interface.h"
-#include "types/usb_types.h"
 
 /*** USB CDC structures ***/
 

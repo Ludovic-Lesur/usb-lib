@@ -8,9 +8,9 @@
 #ifndef __USBD_HW_H__
 #define __USBD_HW_H__
 
+#include "common/usb_endpoint.h"
+#include "common/usb_types.h"
 #include "device/usbd.h"
-#include "types/usb_endpoint.h"
-#include "types/usb_types.h"
 
 #ifndef USB_LIB_DISABLE
 

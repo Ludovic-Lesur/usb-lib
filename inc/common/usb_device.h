@@ -8,11 +8,11 @@
 #ifndef __USB_DEVICE_H__
 #define __USB_DEVICE_H__
 
+#include "common/usb_class.h"
+#include "common/usb_configuration.h"
+#include "common/usb_descriptor.h"
+#include "common/usb_types.h"
 #include "types.h"
-#include "types/usb_class.h"
-#include "types/usb_configuration.h"
-#include "types/usb_descriptor.h"
-#include "types/usb_types.h"
 
 /*** USB DESCRIPTOR macros ***/
 

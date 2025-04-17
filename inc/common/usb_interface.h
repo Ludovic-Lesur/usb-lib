@@ -8,9 +8,10 @@
 #ifndef __USB_INTERFACE_H__
 #define __USB_INTERFACE_H__
 
+#include "common/usb_class.h"
+#include "common/usb_descriptor.h"
+#include "common/usb_endpoint.h"
 #include "types.h"
-#include "types/usb_class.h"
-#include "types/usb_endpoint.h"
 
 /*** USB INTERFACE structures ***/
 

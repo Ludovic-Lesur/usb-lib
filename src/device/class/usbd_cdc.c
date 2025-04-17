@@ -10,12 +10,12 @@
 #ifndef USB_LIB_DISABLE_FLAGS_FILE
 #include "usb_lib_flags.h"
 #endif
+#include "common/usb_device.h"
+#include "common/usb_endpoint.h"
+#include "common/usb_interface.h"
+#include "common/usb_types.h"
 #include "device/usbd_hw.h"
 #include "types.h"
-#include "types/usb_device.h"
-#include "types/usb_endpoint.h"
-#include "types/usb_interface.h"
-#include "types/usb_types.h"
 
 #if (!(defined USB_LIB_DISABLE) && (defined USBD_CDC))
 

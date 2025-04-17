@@ -10,15 +10,15 @@
 #ifndef USB_LIB_DISABLE_FLAGS_FILE
 #include "usb_lib_flags.h"
 #endif
+#include "common/usb_device.h"
+#include "common/usb_descriptor.h"
+#include "common/usb_request.h"
+#include "common/usb_types.h"
 #include "device/usbd.h"
 #include "device/usbd_hw.h"
 #include "error.h"
 #include "strings.h"
 #include "types.h"
-#include "types/usb_device.h"
-#include "types/usb_descriptor.h"
-#include "types/usb_request.h"
-#include "types/usb_types.h"
 
 #ifndef USB_LIB_DISABLE
 

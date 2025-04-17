@@ -8,8 +8,8 @@
 #ifndef __USB_ENDPOINT_H__
 #define __USB_ENDPOINT_H__
 
-#include "types/usb_descriptor.h"
-#include "types/usb_request.h"
+#include "common/usb_descriptor.h"
+#include "common/usb_request.h"
 #include "types.h"
 
 /*** USB ENDPOINT structures ***/
