@@ -38,7 +38,9 @@ typedef struct {
 typedef struct {
     const USB_interface_descriptor_t* descriptor;
     const USB_endpoint_t** endpoint_list;
-    uint8_t number_of_endpoints;
+    const uint8_t number_of_endpoints;
+    const uint8_t** cs_descriptor;
+    const uint8_t* cs_descriptor_length;
 } USB_interface_t;
 
 #endif /* __USB_INTERFACE_H__ */

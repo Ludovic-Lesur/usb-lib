@@ -153,10 +153,23 @@ static USBD_CONTROL_context_t usbd_control_ctx = {
 const USB_interface_t USBD_CONTROL_INTERFACE = {
     .descriptor = &USBD_CONTROL_INTERFACE_DESCRIPTOR,
     .number_of_endpoints = USBD_CONTROL_ENDPOINT_INDEX_LAST,
-    .endpoint_list = (const USB_endpoint_t**) &USBD_CONTROL_EP_LIST
+    .endpoint_list = (const USB_endpoint_t**) &USBD_CONTROL_EP_LIST,
+    .cs_descriptor = NULL,
+    .cs_descriptor_length = NULL
 };
 
 /*** USBD CONTROL local functions ***/
+
+/*******************************************************************/
+#define _USBD_CONTROL_full_configuration_descriptor_add_byte(new_byte) { \
+    /* Add byte */ \
+    usbd_control_ctx.full_configuration_descriptor[full_idx++] = new_byte; \
+    /* Check length */ \
+    if (full_idx >= USBD_CONTROL_DESCRIPTOR_BUFFER_SIZE_BYTES) { \
+        status = USBD_CONTROL_ERROR_FULL_CONFIGURATION_DESCRIPTOR_SIZE; \
+        goto errors; \
+    } \
+}
 
 /*******************************************************************/
 static USBD_CONTROL_status_t _USBD_CONTROL_build_full_configuration_descriptor(uint8_t index) {
@@ -180,7 +193,7 @@ static USBD_CONTROL_status_t _USBD_CONTROL_build_full_configuration_descriptor(u
     // Build full configuration descriptor.
     descriptor_ptr = (uint8_t*) (configuration_ptr->descriptor);
     for (idx = 0; idx < (configuration_ptr->descriptor->bLength); idx++) {
-        usbd_control_ctx.full_configuration_descriptor[full_idx++] = descriptor_ptr[idx];
+        _USBD_CONTROL_full_configuration_descriptor_add_byte(descriptor_ptr[idx]);
     }
     // Interfaces loop.
     for (interface_idx = (USBD_CONTROL_INTERFACE_INDEX + 1); interface_idx < (configuration_ptr->number_of_interfaces); interface_idx++) {
@@ -189,7 +202,16 @@ static USBD_CONTROL_status_t _USBD_CONTROL_build_full_configuration_descriptor(u
         descriptor_ptr = (uint8_t*) (interface_ptr->descriptor);
         // Append interface descriptor.
         for (idx = 0; idx < (interface_ptr->descriptor)->bLength; idx++) {
-            usbd_control_ctx.full_configuration_descriptor[full_idx++] = descriptor_ptr[idx];
+            _USBD_CONTROL_full_configuration_descriptor_add_byte(descriptor_ptr[idx]);
+        }
+        // Check class specific descriptors.
+        if ((interface_ptr->cs_descriptor != NULL) && (interface_ptr->cs_descriptor_length != NULL)) {
+            // Update pointer.
+            descriptor_ptr = (uint8_t*) (interface_ptr->cs_descriptor);
+            // Append class specific descriptors.
+            for (idx = 0; idx < (*(interface_ptr->cs_descriptor_length)); idx++) {
+                _USBD_CONTROL_full_configuration_descriptor_add_byte(descriptor_ptr[idx]);
+            }
         }
         // Endpoints loop.
         for (endpoint_idx = 0; endpoint_idx < (interface_ptr->number_of_endpoints); endpoint_idx++) {
@@ -198,7 +220,7 @@ static USBD_CONTROL_status_t _USBD_CONTROL_build_full_configuration_descriptor(u
             descriptor_ptr = (uint8_t*) (endpoint_ptr->descriptor);
             // Append endpoint descriptor.
             for (idx = 0; idx < (endpoint_ptr->descriptor)->bLength; idx++) {
-                usbd_control_ctx.full_configuration_descriptor[full_idx++] = descriptor_ptr[idx];
+                _USBD_CONTROL_full_configuration_descriptor_add_byte(descriptor_ptr[idx]);
             }
         }
     }

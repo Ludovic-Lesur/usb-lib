@@ -25,6 +25,7 @@
 typedef enum {
     // Driver errors.
     USBD_CDC_SUCCESS = 0,
+    USBD_CDC_ERROR_CS_DESCRIPTOR_SIZE,
     // Low level drivers errors.
     USBD_CDC_ERROR_BASE_HW_INTERFACE = ERROR_BASE_STEP,
     // Last base value.

@@ -16,7 +16,7 @@
 
 /*** USB DEVICE macros ***/
 
-#define USB_DESCRIPTOR_USB_VERSION  0x0200
+#define USB_DEVICE_DESCRIPTOR_USB_VERSION   0x0200
 
 /*** USB DEVICE structures ***/
 
