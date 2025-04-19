@@ -97,7 +97,7 @@ typedef struct {
 } __attribute__((packed)) USB_CDC_header_descriptor_t;
 
 /*!******************************************************************
- * \struct USB_CDC_call_capabilities_descriptor_t
+ * \struct USB_CDC_call_bmCapabilities_t
  * \brief USB CDC call capabilities format.
  *******************************************************************/
 typedef union {
@@ -107,7 +107,7 @@ typedef union {
         uint8_t reserved_7_2 :6;
     } __attribute__((packed));
     uint8_t value;
-} USB_CDC_call_capabilities_descriptor_t;
+} USB_CDC_call_bmCapabilities_t;
 
 /*!******************************************************************
  * \struct USB_CDC_call_descriptor_t
@@ -117,12 +117,12 @@ typedef struct {
     uint8_t bFunctionLength;
     USB_descriptor_type_t bDescriptorType;
     USB_CDC_descriptor_subtype_t bDescriptorSubtype;
-    USB_CDC_call_capabilities_descriptor_t bmCapabilities;
+    USB_CDC_call_bmCapabilities_t bmCapabilities;
     uint8_t bDataInterface;
 } __attribute__((packed)) USB_CDC_call_descriptor_t;
 
 /*!******************************************************************
- * \struct USB_CDC_abstract_capabilities_descriptor_t
+ * \struct USB_CDC_abstract_bmCapabilities_t
  * \brief USB CDC abstract capabilities format.
  *******************************************************************/
 typedef union {
@@ -134,7 +134,7 @@ typedef union {
         uint8_t reserved_7_4 :4;
     } __attribute__((packed));
     uint8_t value;
-} USB_CDC_abstract_capabilities_descriptor_t;
+} USB_CDC_abstract_bmCapabilities_t;
 
 /*!******************************************************************
  * \struct USB_CDC_abstract_descriptor_t
@@ -144,7 +144,7 @@ typedef struct {
     uint8_t bFunctionLength;
     USB_descriptor_type_t bDescriptorType;
     USB_CDC_descriptor_subtype_t bDescriptorSubtype;
-    USB_CDC_abstract_capabilities_descriptor_t bmCapabilities;
+    USB_CDC_abstract_bmCapabilities_t bmCapabilities;
 } __attribute__((packed)) USB_CDC_abstract_descriptor_t;
 
 /*!******************************************************************

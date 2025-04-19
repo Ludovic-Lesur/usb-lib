@@ -15,7 +15,7 @@
 /*** USB CONFIGURATION structures ***/
 
 /*!******************************************************************
- * \struct USB_configuration_descriptor_attributes_t
+ * \struct USB_configuration_bmAttributes_t
  * \brief USB configuration descriptor attributes format.
  *******************************************************************/
 typedef union {
@@ -26,7 +26,7 @@ typedef union {
         uint8_t reserved_7 :1;
     } __attribute__((packed));
     uint8_t value;
-} USB_configuration_descriptor_attributes_t;
+} USB_configuration_bmAttributes_t;
 
 /*!******************************************************************
  * \struct USB_configuration_descriptor_t
@@ -39,7 +39,7 @@ typedef struct {
     uint8_t bNumInterfaces;
     uint8_t bConfigurationValue;
     uint8_t iConfiguration;
-    USB_configuration_descriptor_attributes_t bmAttributes;
+    USB_configuration_bmAttributes_t bmAttributes;
     uint8_t bMaxPower;
 } __attribute__((packed)) USB_configuration_descriptor_t;
 

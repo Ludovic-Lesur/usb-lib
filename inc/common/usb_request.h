@@ -17,52 +17,52 @@
  * \brief USB request directions list.
  *******************************************************************/
 typedef enum {
-    USB_REQUEST_DIRECTION_HOST_TO_DEVICE = 0,
-    USB_REQUEST_DIRECTION_DEVICE_TO_HOST,
+    USB_REQUEST_DIRECTION_HOST_TO_DEVICE = 0x00,
+    USB_REQUEST_DIRECTION_DEVICE_TO_HOST = 0x01,
     USB_REQUEST_DIRECTION_LAST
 } USB_request_direction_t;
 
 /*!******************************************************************
- * \enum USB_request_sub_type_t
- * \brief USB request sub-types list.
+ * \enum USB_request_type_t
+ * \brief USB request types list.
  *******************************************************************/
 typedef enum {
-    USB_REQUEST_SUB_TYPE_STANDARD = 0,
-    USB_REQUEST_SUB_TYPE_CLASS,
-    USB_REQUEST_SUB_TYPE_VENDOR,
-    USB_REQUEST_SUB_TYPE_LAST
-} USB_request_sub_type_t;
+    USB_REQUEST_TYPE_STANDARD = 0x00,
+    USB_REQUEST_TYPE_CLASS = 0x01,
+    USB_REQUEST_TYPE_VENDOR = 0x02,
+    USB_REQUEST_TYPE_LAST
+} USB_request_type_t;
 
 /*!******************************************************************
  * \enum USB_request_recipient_t
  * \brief USB request recipients list.
  *******************************************************************/
 typedef enum {
-    USB_REQUEST_RECIPIENT_DEVICE = 0,
-    USB_REQUEST_RECIPIENT_INTERFACE,
-    USB_REQUEST_RECIPIENT_ENDPOINT,
-    USB_REQUEST_RECIPIENT_OTHER,
+    USB_REQUEST_RECIPIENT_DEVICE = 0x00,
+    USB_REQUEST_RECIPIENT_INTERFACE = 0x01,
+    USB_REQUEST_RECIPIENT_ENDPOINT = 0x02,
+    USB_REQUEST_RECIPIENT_OTHER = 0x03,
     USB_REQUEST_RECIPIENT_LAST
 } USB_request_recipient_t;
 
 /*!******************************************************************
- * \enum USB_request_id_t
- * \brief USB request identifiers list.
+ * \enum USB_request_BRequest_t
+ * \brief USB standard requests list.
  *******************************************************************/
 typedef enum {
-    USB_REQUEST_ID_GET_STATUS = 0,
-    USB_REQUEST_ID_CLEAR_FEATURE = 1,
-    USB_REQUEST_ID_SET_FEATURE = 3,
-    USB_REQUEST_ID_SET_ADDRESS = 5,
-    USB_REQUEST_ID_GET_DESCRIPTOR = 6,
-    USB_REQUEST_ID_SET_DESCRIPTOR = 7,
-    USB_REQUEST_ID_GET_CONFIGURATION = 8,
-    USB_REQUEST_ID_SET_CONFIGURATION = 9,
-    USB_REQUEST_ID_GET_INTERFACE = 10,
-    USB_REQUEST_ID_SET_INTERFACE = 11,
-    USB_REQUEST_ID_SYNCH_FRAME = 12,
-    USB_REQUEST_ID_LAST
-} USB_request_id_t;
+    USB_REQUEST_GET_STATUS = 0x00,
+    USB_REQUEST_CLEAR_FEATURE = 0x01,
+    USB_REQUEST_SET_FEATURE = 0x03,
+    USB_REQUEST_SET_ADDRESS = 0x05,
+    USB_REQUEST_GET_DESCRIPTOR = 0x06,
+    USB_REQUEST_SET_DESCRIPTOR = 0x07,
+    USB_REQUEST_GET_CONFIGURATION = 0x08,
+    USB_REQUEST_SET_CONFIGURATION = 0x09,
+    USB_REQUEST_GET_INTERFACE = 0x0A,
+    USB_REQUEST_SET_INTERFACE = 0x0B,
+    USB_REQUEST_SYNCH_FRAME = 0x0C,
+    USB_REQUEST_LAST
+} USB_request_standard_t;
 
 /*!******************************************************************
  * \enum USB_request_operation_t
@@ -77,8 +77,8 @@ typedef enum {
 } USB_request_operation_t;
 
 /*!******************************************************************
- * \struct USB_request_type_t
- * \brief USB request type format.
+ * \struct USB_request_bmRequestType_t
+ * \brief USB request type descriptor format.
  *******************************************************************/
 typedef union {
     struct {
@@ -87,15 +87,15 @@ typedef union {
         uint8_t direction :1;
     } __attribute__((packed));
     uint8_t value;
-} USB_request_type_t;
+} USB_request_bmRequestType_t;
 
 /*!******************************************************************
  * \struct USB_request_t
  * \brief USB request structure.
  *******************************************************************/
 typedef struct {
-    USB_request_type_t bmRequestType;
-    USB_request_id_t bRequest;
+    USB_request_bmRequestType_t bmRequestType;
+    uint8_t bRequest;
     uint16_t wValue;
     uint16_t wIndex;
     uint16_t wLength;

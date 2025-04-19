@@ -31,8 +31,8 @@ typedef void (*USB_setup_cb_t)(USB_request_operation_t* request_operation);
  * \brief USB endpoint directions list.
  *******************************************************************/
 typedef enum {
-    USB_ENDPOINT_DIRECTION_OUT = 0,
-    USB_ENDPOINT_DIRECTION_IN,
+    USB_ENDPOINT_DIRECTION_OUT = 0x00,
+    USB_ENDPOINT_DIRECTION_IN = 0x01,
     USB_ENDPOINT_DIRECTION_LAST
 } USB_endpoint_direction_t;
 
@@ -41,10 +41,10 @@ typedef enum {
  * \brief USB endpoint transfer types list.
  *******************************************************************/
 typedef enum {
-    USB_ENDPOINT_TRANSFER_TYPE_CONTROL = 0,
-    USB_ENDPOINT_TRANSFER_TYPE_ISOCHRONOUS,
-    USB_ENDPOINT_TRANSFER_TYPE_BULK,
-    USB_ENDPOINT_TRANSFER_TYPE_INTERRUPT,
+    USB_ENDPOINT_TRANSFER_TYPE_CONTROL = 0x00,
+    USB_ENDPOINT_TRANSFER_TYPE_ISOCHRONOUS = 0x01,
+    USB_ENDPOINT_TRANSFER_TYPE_BULK = 0x02,
+    USB_ENDPOINT_TRANSFER_TYPE_INTERRUPT = 0x03,
     USB_ENDPOINT_TRANSFER_TYPE_LAST
 } USB_endpoint_transfer_type_t;
 
@@ -53,10 +53,10 @@ typedef enum {
  * \brief USB endpoint synchronization types list.
  *******************************************************************/
 typedef enum {
-    USB_ENDPOINT_SYNCHRONIZATION_TYPE_NONE = 0,
-    USB_ENDPOINT_SYNCHRONIZATION_TYPE_ASYNCHRONOUS,
-    USB_ENDPOINT_SYNCHRONIZATION_TYPE_ADAPTATIVE,
-    USB_ENDPOINT_SYNCHRONIZATION_TYPE_SYNCHRONOUS,
+    USB_ENDPOINT_SYNCHRONIZATION_TYPE_NONE = 0x00,
+    USB_ENDPOINT_SYNCHRONIZATION_TYPE_ASYNCHRONOUS = 0x01,
+    USB_ENDPOINT_SYNCHRONIZATION_TYPE_ADAPTATIVE = 0x02,
+    USB_ENDPOINT_SYNCHRONIZATION_TYPE_SYNCHRONOUS = 0x03,
     USB_ENDPOINT_SYNCHRONIZATION_TYPE_LAST
 } USB_endpoint_synchronization_type_t;
 
@@ -65,14 +65,14 @@ typedef enum {
  * \brief USB endpoint usage types list.
  *******************************************************************/
 typedef enum {
-    USB_ENDPOINT_USAGE_TYPE_DATA = 0,
-    USB_ENDPOINT_USAGE_TYPE_FEEDBACK,
-    USB_ENDPOINT_USAGE_TYPE_IMPLICIT_FEEDBACK_DATA,
+    USB_ENDPOINT_USAGE_TYPE_DATA = 0x00,
+    USB_ENDPOINT_USAGE_TYPE_FEEDBACK = 0x01,
+    USB_ENDPOINT_USAGE_TYPE_IMPLICIT_FEEDBACK_DATA = 0x02,
     USB_ENDPOINT_USAGE_TYPE_LAST
 } USB_endpoint_usage_type_t;
 
 /*!******************************************************************
- * \struct USB_endpoint_address_descriptor_t
+ * \struct USB_endpoint_bEndpointAddress_t
  * \brief USB endpoint address descriptor format.
  *******************************************************************/
 typedef union {
@@ -82,10 +82,10 @@ typedef union {
         uint8_t direction :1;
     } __attribute__((packed));
     uint8_t value;
-} USB_endpoint_address_descriptor_t;
+} USB_endpoint_bEndpointAddress_t;
 
 /*!******************************************************************
- * \struct USB_endpoint_attributes_descriptor_t
+ * \struct USB_endpoint_bmAttributes_t
  * \brief USB endpoint attributes descriptor format.
  *******************************************************************/
 typedef union {
@@ -96,11 +96,11 @@ typedef union {
         uint8_t reserved_7_6 :2;
     } __attribute__((packed));
     uint8_t value;
-} USB_endpoint_attributes_descriptor_t;
+} USB_endpoint_bmAttributes_t;
 
 /*!******************************************************************
- * \struct USB_endpoint_max_packet_size_descriptor_t
- * \brief USB endpoint attributes descriptor format.
+ * \struct USB_endpoint_wMaxPacketSize_t
+ * \brief USB endpoint maximum packet size descriptor format.
  *******************************************************************/
 typedef union {
     struct {
@@ -109,7 +109,7 @@ typedef union {
         uint8_t reserved_15_13 :3;
     } __attribute__((packed));
     uint16_t value;
-} USB_endpoint_max_packet_size_descriptor_t;
+} USB_endpoint_wMaxPacketSize_t;
 
 /*!******************************************************************
  * \struct USB_endpoint_descriptor_t
@@ -118,9 +118,9 @@ typedef union {
 typedef struct {
     uint8_t bLength;
     USB_descriptor_type_t bDescriptorType;
-    USB_endpoint_address_descriptor_t bEndpointAddress;
-    USB_endpoint_attributes_descriptor_t bmAttributes;
-    USB_endpoint_max_packet_size_descriptor_t wMaxPacketSize;
+    USB_endpoint_bEndpointAddress_t bEndpointAddress;
+    USB_endpoint_bmAttributes_t bmAttributes;
+    USB_endpoint_wMaxPacketSize_t wMaxPacketSize;
     uint8_t bInterval;
 } __attribute__((packed)) USB_endpoint_descriptor_t;
 

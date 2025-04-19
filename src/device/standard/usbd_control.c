@@ -292,33 +292,72 @@ errors:
 }
 
 /*******************************************************************/
-static USBD_CONTROL_status_t _USBD_CONTROL_decode_standard_request(USB_data_t* usb_data_out, USB_request_operation_t* request_operation, USB_data_t* usb_data_in) {
+static USBD_CONTROL_status_t _USBD_CONTROL_decode_standard_request(uint8_t bRequest, uint8_t wValue_high, uint8_t wValue_low) {
     // Local variables.
     USBD_CONTROL_status_t status = USBD_CONTROL_SUCCESS;
     USBD_status_t usbd_status = USBD_SUCCESS;
+    // Check request.
+    switch (bRequest) {
+    case USB_REQUEST_GET_DESCRIPTOR:
+        // Read descriptor.
+        status = _USBD_CONTROL_get_descriptor(wValue_high, wValue_low, &(usbd_control_ctx.data_in.data), &(usbd_control_ctx.data_in.size_bytes));
+        if (status != USBD_CONTROL_SUCCESS) goto errors;
+        break;
+    case USB_REQUEST_SET_ADDRESS:
+        // Set address on hardware side.
+        usbd_status = USBD_HW_set_address(wValue_low);
+        USBD_exit_error(USBD_CONTROL_ERROR_BASE_HW_INTERFACE);
+        break;
+    case USB_REQUEST_SET_CONFIGURATION:
+        // Set configuration.
+        status = usbd_control_ctx.requests_callbacks->set_configuration(wValue_low);
+        if (status != USBD_CONTROL_SUCCESS) goto errors;
+        break;
+    default:
+        status = USBD_CONTROL_ERROR_STANDARD_REQUEST;
+        goto errors;
+    }
+errors:
+    return status;
+}
+
+/*******************************************************************/
+static USBD_CONTROL_status_t _USBD_CONTROL_decode_request(USB_request_operation_t* request_operation) {
+    // Local variables.
+    USBD_CONTROL_status_t status = USBD_CONTROL_SUCCESS;
     USB_request_t* request_packet;
     uint8_t wValue_high = 0;
     uint8_t wValue_low = 0;
     // Check parameters.
-    if ((usb_data_out == NULL) || (request_operation == NULL) || ((usb_data_in == NULL))) {
+    if (request_operation == NULL) {
         status = USBD_CONTROL_ERROR_NULL_PARAMETER;
         goto errors;
     }
     // Check data size.
-    if ((usb_data_out->size_bytes) < sizeof(USB_request_t)) {
-        status = USBD_CONTROL_ERROR_STANDARD_REQUEST_SIZE;
+    if ((usbd_control_ctx.data_out.size_bytes) < sizeof(USB_request_t)) {
+        status = USBD_CONTROL_ERROR_REQUEST_SIZE;
         goto errors;
     }
     // Reset setup request operation.
     (*request_operation) = USB_REQUEST_OPERATION_NOT_SUPPORTED;
     // Reset output data.
-    usb_data_in->data = NULL;
-    usb_data_in->size_bytes = 0;
+    usbd_control_ctx.data_in.data = NULL;
+    usbd_control_ctx.data_in.size_bytes = 0;
     // Cast frame.
-    request_packet = (USB_request_t*) (usb_data_out->data);
-    // Parse type and index.
+    request_packet = (USB_request_t*) (usbd_control_ctx.data_out.data);
+    // Parse fields.
     wValue_high = (uint8_t) (((request_packet->wValue) >> 8) & 0xFF);
     wValue_low = (uint8_t) (((request_packet->wValue) >> 0) & 0xFF);
+    // Check type.
+    switch (request_packet->bmRequestType.type) {
+    case USB_REQUEST_TYPE_STANDARD:
+        status = _USBD_CONTROL_decode_standard_request((request_packet->bRequest), wValue_high, wValue_low);
+        if (status != USBD_CONTROL_SUCCESS) goto errors;
+        break;
+    default:
+        status = USBD_CONTROL_ERROR_REQUEST_TYPE;
+        goto errors;
+    }
     // Compute transfer type.
     if ((request_packet->wLength) == 0) {
         (*request_operation) = USB_REQUEST_OPERATION_WRITE_NO_DATA;
@@ -331,33 +370,9 @@ static USBD_CONTROL_status_t _USBD_CONTROL_decode_standard_request(USB_data_t* u
             (*request_operation) = USB_REQUEST_OPERATION_READ;
         }
     }
-    // Check request.
-    switch (request_packet->bRequest) {
-    case USB_REQUEST_ID_GET_DESCRIPTOR:
-        // Read descriptor.
-        status = _USBD_CONTROL_get_descriptor(wValue_high, wValue_low, &(usb_data_in->data), &(usb_data_in->size_bytes));
-        if (status != USBD_CONTROL_SUCCESS) goto errors;
-        break;
-    case USB_REQUEST_ID_SET_ADDRESS:
-        // Set address on hardware side.
-        usbd_status = USBD_HW_set_address(wValue_low);
-        USBD_exit_error(USBD_CONTROL_ERROR_BASE_HW_INTERFACE);
-        break;
-    case USB_REQUEST_ID_SET_CONFIGURATION:
-        // Set configuration.
-        status = usbd_control_ctx.requests_callbacks->set_configuration(wValue_low);
-        if (status != USBD_CONTROL_SUCCESS) goto errors;
-        break;
-    default:
-        // Unsupported request.
-        (*request_operation) = USB_REQUEST_OPERATION_NOT_SUPPORTED;
-        // Return error.
-        status = USBD_CONTROL_ERROR_BREQUEST;
-        goto errors;
-    }
     // Clamp data size according to request.
-    if ((usb_data_in->size_bytes) > (request_packet->wLength)) {
-        (usb_data_in->size_bytes) = (request_packet->wLength);
+    if ((usbd_control_ctx.data_in.size_bytes) > (request_packet->wLength)) {
+        usbd_control_ctx.data_in.size_bytes = (request_packet->wLength);
     }
 errors:
     return status;
@@ -372,11 +387,13 @@ static void _USBD_CONTROL_setup_callback(USB_request_operation_t* setup_request_
     usbd_status = USBD_HW_read((USB_physical_endpoint_t*) &USBD_CONTROL_EP_PHY_OUT, &usbd_control_ctx.data_out);
     USBD_exit_error(USBD_CONTROL_ERROR_BASE_HW_INTERFACE);
     // Decode request.
-    status = _USBD_CONTROL_decode_standard_request(&usbd_control_ctx.data_out, setup_request_type, &usbd_control_ctx.data_in);
+    status = _USBD_CONTROL_decode_request(setup_request_type);
     if (status != USBD_CONTROL_SUCCESS) goto errors;
-    // Write data.
-    usbd_status = USBD_HW_write((USB_physical_endpoint_t*) &USBD_CONTROL_EP_PHY_IN, &usbd_control_ctx.data_in);
-    USBD_exit_error(USBD_CONTROL_ERROR_BASE_HW_INTERFACE);
+    // Send reply is needed.
+    if ((usbd_control_ctx.data_in.data != NULL) && (usbd_control_ctx.data_in.size_bytes != 0)) {
+        usbd_status = USBD_HW_write((USB_physical_endpoint_t*) &USBD_CONTROL_EP_PHY_IN, &usbd_control_ctx.data_in);
+        USBD_exit_error(USBD_CONTROL_ERROR_BASE_HW_INTERFACE);
+    }
 errors:
     return;
 }
