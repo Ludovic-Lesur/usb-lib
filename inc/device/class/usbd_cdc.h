@@ -16,48 +16,32 @@
 #include "error.h"
 #include "types.h"
 
-/*** USB CDC structures ***/
-
-/*!******************************************************************
- * \enum USBD_CDC_status_t
- * \brief USBD CDC driver error codes.
- *******************************************************************/
-typedef enum {
-    // Driver errors.
-    USBD_CDC_SUCCESS = 0,
-    USBD_CDC_ERROR_CS_DESCRIPTOR_SIZE,
-    // Low level drivers errors.
-    USBD_CDC_ERROR_BASE_HW_INTERFACE = ERROR_BASE_STEP,
-    // Last base value.
-    USBD_CDC_ERROR_BASE_LAST = (USBD_CDC_ERROR_BASE_HW_INTERFACE + USB_LIB_HW_INTERFACE_ERROR_BASE_LAST)
-} USBD_CDC_status_t;
-
 #if (!(defined USB_LIB_DISABLE) && (defined USBD_CDC))
 
 /*** USB CDC global variables ***/
 
-extern const USB_interface_t USBD_CDC_COM_INTERFACE;
+extern const USB_interface_t USBD_CDC_COMM_INTERFACE;
 extern const USB_interface_t USBD_CDC_DATA_INTERFACE;
 
 /*** USB CDC functions ***/
 
 /*!******************************************************************
- * \fn USBD_CDC_status_t USBD_CDC_init(void)
+ * \fn USB_status_t USBD_CDC_init(void)
  * \brief Init USB device CDC class driver.
  * \param[in]   none
  * \param[out]  none
  * \retval      Function execution status.
  *******************************************************************/
-USBD_CDC_status_t USBD_CDC_init(void);
+USB_status_t USBD_CDC_init(void);
 
 /*!******************************************************************
- * \fn USBD_CDC_status_t USBD_CDC_de_init(void)
+ * \fn USB_status_t USBD_CDC_de_init(void)
  * \brief Release USB device CDC class driver.
  * \param[in]   none
  * \param[out]  none
  * \retval      Function execution status.
  *******************************************************************/
-USBD_CDC_status_t USBD_CDC_de_init(void);
+USB_status_t USBD_CDC_de_init(void);
 
 /*******************************************************************/
 #define USBD_CDC_exit_error(base) { ERROR_check_exit(usbd_cdc_status, USBD_CDC_SUCCESS, base) }

@@ -14,6 +14,7 @@
 #include "common/usb_device.h"
 #include "common/usb_endpoint.h"
 #include "common/usb_interface.h"
+#include "common/usb_request.h"
 #include "common/usb_types.h"
 #include "device/usbd_hw.h"
 #include "types.h"
@@ -27,16 +28,19 @@
 
 /*** USBD CDC local functions declaration ***/
 
-static void _USBD_CDC_endpoint_callback_com_in(void);
-static void _USBD_CDC_endpoint_callback_data_out(void);
-static void _USBD_CDC_endpoint_callback_data_in(void);
+static void _USBD_CDC_COMM_endpoint_in_callback(void);
+static void _USBD_CDC_DATA_endpoint_out_callback(void);
+static void _USBD_CDC_DATA_endpoint_in_callback(void);
+
+static USB_status_t _USBD_CDC_COMM_request_callback(USB_request_t* request, USB_data_t* data_in);
+static USB_status_t _USBD_CDC_DATA_request_callback(USB_request_t* request, USB_data_t* data_in);
 
 /*** USBD CDC local structures ***/
 
 /*******************************************************************/
 typedef enum {
-    USBD_CDC_COM_ENDPOINT_INDEX_IN = 0,
-    USBD_CDC_COM_ENDPOINT_INDEX_LAST
+    USBD_CDC_COMM_ENDPOINT_INDEX_IN = 0,
+    USBD_CDC_COMM_ENDPOINT_INDEX_LAST
 } USBD_CDC_com_endpoint_index_t;
 
 /*******************************************************************/
@@ -55,13 +59,13 @@ typedef struct {
 /*** USB CDC local global variables ***/
 
 static const USB_physical_endpoint_t USBD_CDC_EP_PHY_COM_IN = {
-    .number = USBD_CDC_COM_ENDPOINT_NUMBER,
+    .number = USBD_CDC_COMM_ENDPOINT_NUMBER,
     .direction = USB_ENDPOINT_DIRECTION_IN,
     .transfer_type = USB_ENDPOINT_TRANSFER_TYPE_INTERRUPT,
     .synchronization_type = USB_ENDPOINT_SYNCHRONIZATION_TYPE_NONE,
     .usage_type = USB_ENDPOINT_USAGE_TYPE_DATA,
-    .max_packet_size_bytes = USBD_CDC_COM_PACKET_SIZE_BYTES,
-    .callback = &_USBD_CDC_endpoint_callback_com_in
+    .max_packet_size_bytes = USBD_CDC_COMM_PACKET_SIZE_BYTES,
+    .callback = &_USBD_CDC_COMM_endpoint_in_callback
 };
 
 static const USB_physical_endpoint_t USBD_CDC_EP_PHY_DATA_OUT = {
@@ -71,7 +75,7 @@ static const USB_physical_endpoint_t USBD_CDC_EP_PHY_DATA_OUT = {
     .synchronization_type = USB_ENDPOINT_SYNCHRONIZATION_TYPE_NONE,
     .usage_type = USB_ENDPOINT_USAGE_TYPE_DATA,
     .max_packet_size_bytes = USBD_CDC_DATA_PACKET_SIZE_BYTES,
-    .callback = &_USBD_CDC_endpoint_callback_data_out
+    .callback = &_USBD_CDC_DATA_endpoint_out_callback
 };
 
 static const USB_physical_endpoint_t USBD_CDC_EP_PHY_DATA_IN = {
@@ -81,7 +85,7 @@ static const USB_physical_endpoint_t USBD_CDC_EP_PHY_DATA_IN = {
     .synchronization_type = USB_ENDPOINT_SYNCHRONIZATION_TYPE_NONE,
     .usage_type = USB_ENDPOINT_USAGE_TYPE_DATA,
     .max_packet_size_bytes = USBD_CDC_DATA_PACKET_SIZE_BYTES,
-    .callback = &_USBD_CDC_endpoint_callback_data_in
+    .callback = &_USBD_CDC_DATA_endpoint_in_callback
 };
 
 static const USB_endpoint_descriptor_t USBD_CDC_EP_PHY_COM_IN_DESCRIPTOR = {
@@ -147,7 +151,7 @@ static const USB_endpoint_t USBD_CDC_EP_DATA_IN = {
     .descriptor = &USBD_CDC_EP_PHY_DATA_IN_DESCRIPTOR
 };
 
-static const USB_endpoint_t* const USBD_CDC_COM_INTERFACE_EP_LIST[USBD_CDC_COM_ENDPOINT_INDEX_LAST] = {
+static const USB_endpoint_t* const USBD_CDC_COMM_INTERFACE_EP_LIST[USBD_CDC_COMM_ENDPOINT_INDEX_LAST] = {
     &USBD_CDC_EP_COM_IN
 };
 
@@ -156,16 +160,16 @@ static const USB_endpoint_t* const USBD_CDC_DATA_INTERFACE_EP_LIST[USBD_CDC_DATA
     &USBD_CDC_EP_DATA_IN
 };
 
-static const USB_interface_descriptor_t USB_CDC_COM_INTERFACE_DESCRIPTOR = {
+static const USB_interface_descriptor_t USB_CDC_COMM_INTERFACE_DESCRIPTOR = {
     .bLength = sizeof(USB_interface_descriptor_t),
     .bDescriptorType = USB_DESCRIPTOR_TYPE_INTERFACE,
-    .bInterfaceNumber = USBD_CDC_COM_INTERFACE_INDEX,
+    .bInterfaceNumber = USBD_CDC_COMM_INTERFACE_INDEX,
     .bAlternateSetting = 0,
-    .bNumEndpoints = USBD_CDC_COM_ENDPOINT_INDEX_LAST,
+    .bNumEndpoints = USBD_CDC_COMM_ENDPOINT_INDEX_LAST,
     .bInterfaceClass = USB_CLASS_CODE_CDC_CONTROL,
     .bInterfaceSubClass = USB_CDC_SUBCLASS_CODE_ABSTRACT,
     .bInterfaceProtocol = USB_CDC_PROTOCOL_CODE_NONE,
-    .iInterface = USBD_CDC_COM_INTERFACE_STRING_DESCRIPTOR_INDEX
+    .iInterface = USBD_CDC_COMM_INTERFACE_STRING_DESCRIPTOR_INDEX
 };
 
 static const USB_interface_descriptor_t USB_CDC_DATA_INTERFACE_DESCRIPTOR = {
@@ -206,7 +210,7 @@ static const USB_CDC_union_descriptor_t USB_CDC_UNION_DESCRIPTOR = {
     .bFunctionLength = sizeof(USB_CDC_union_descriptor_t),
     .bDescriptorType = USB_DESCRIPTOR_TYPE_CLASS_SPECIFIC_INTERFACE,
     .bDescriptorSubtype = USB_CDC_DESCRIPTOR_SUBTYPE_UNION,
-    .bControlInterface = USBD_CDC_COM_INTERFACE_INDEX,
+    .bControlInterface = USBD_CDC_COMM_INTERFACE_INDEX,
     .bSubordinateInterface = USBD_CDC_DATA_INTERFACE_INDEX
 };
 
@@ -224,12 +228,13 @@ static USBD_CDC_context_t usbd_cdc_ctx = {
 
 /*** USB CDC global variables ***/
 
-const USB_interface_t USBD_CDC_COM_INTERFACE = {
-    .descriptor = &USB_CDC_COM_INTERFACE_DESCRIPTOR,
-    .endpoint_list = (const USB_endpoint_t**) &USBD_CDC_COM_INTERFACE_EP_LIST,
-    .number_of_endpoints = USBD_CDC_COM_ENDPOINT_INDEX_LAST,
+const USB_interface_t USBD_CDC_COMM_INTERFACE = {
+    .descriptor = &USB_CDC_COMM_INTERFACE_DESCRIPTOR,
+    .endpoint_list = (const USB_endpoint_t**) &USBD_CDC_COMM_INTERFACE_EP_LIST,
+    .number_of_endpoints = USBD_CDC_COMM_ENDPOINT_INDEX_LAST,
     .cs_descriptor = (const uint8_t**) &(usbd_cdc_ctx.cs_descriptor),
-    .cs_descriptor_length = &(usbd_cdc_ctx.cs_descriptor_length)
+    .cs_descriptor_length = &(usbd_cdc_ctx.cs_descriptor_length),
+    .request_callback = &_USBD_CDC_COMM_request_callback
 };
 
 const USB_interface_t USBD_CDC_DATA_INTERFACE = {
@@ -237,33 +242,53 @@ const USB_interface_t USBD_CDC_DATA_INTERFACE = {
     .endpoint_list = (const USB_endpoint_t**) &USBD_CDC_DATA_INTERFACE_EP_LIST,
     .number_of_endpoints = USBD_CDC_DATA_ENDPOINT_INDEX_LAST,
     .cs_descriptor = NULL,
-    .cs_descriptor_length = NULL
+    .cs_descriptor_length = NULL,
+    .request_callback = &_USBD_CDC_DATA_request_callback
 };
 
 /*** USB CDC local functions ***/
 
 /*******************************************************************/
-static void _USBD_CDC_endpoint_callback_com_in(void) {
+static USB_status_t _USBD_CDC_COMM_request_callback(USB_request_t* request, USB_data_t* data_in) {
+    // Local variables.
+    USB_status_t status = USB_SUCCESS;
+    // TODO
+    UNUSED(request);
+    UNUSED(data_in);
+    return status;
+}
+
+/*******************************************************************/
+static USB_status_t _USBD_CDC_DATA_request_callback(USB_request_t* request, USB_data_t* data_in) {
+    // Local variables.
+    USB_status_t status = USB_SUCCESS;
+    // TODO
+    UNUSED(request);
+    UNUSED(data_in);
+    return status;
+}
+
+/*******************************************************************/
+static void _USBD_CDC_COMM_endpoint_in_callback(void) {
     // TODO
 }
 
 /*******************************************************************/
-static void _USBD_CDC_endpoint_callback_data_out(void) {
+static void _USBD_CDC_DATA_endpoint_out_callback(void) {
     // TODO
 }
 
 /*******************************************************************/
-static void _USBD_CDC_endpoint_callback_data_in(void) {
+static void _USBD_CDC_DATA_endpoint_in_callback(void) {
     // TODO
 }
 
 /*** USBD CDC functions ***/
 
 /*******************************************************************/
-USBD_CDC_status_t USBD_CDC_init(void) {
+USB_status_t USBD_CDC_init(void) {
     // Local variables.
-    USBD_CDC_status_t status = USBD_CDC_SUCCESS;
-    USBD_status_t usbd_status = USBD_SUCCESS;
+    USB_status_t status = USB_SUCCESS;
     const uint8_t* descriptor_ptr = NULL;
     uint32_t descriptor_idx = 0;
     uint32_t full_idx = 0;
@@ -278,44 +303,43 @@ USBD_CDC_status_t USBD_CDC_init(void) {
             usbd_cdc_ctx.cs_descriptor[full_idx++] = descriptor_ptr[idx];
             // Check length.
             if (full_idx >= USBD_CDC_CS_DESCRIPTOR_BUFFER_SIZE_BYTES) {
-                status = USBD_CDC_ERROR_CS_DESCRIPTOR_SIZE;
+                status = USB_ERROR_CS_DESCRIPTOR_SIZE;
                 goto errors;
             }
         }
     }
     usbd_cdc_ctx.cs_descriptor_length = full_idx;
     // Endpoints loop.
-    for (idx = 0; idx < (USBD_CDC_COM_INTERFACE.number_of_endpoints); idx++) {
+    for (idx = 0; idx < (USBD_CDC_COMM_INTERFACE.number_of_endpoints); idx++) {
         // Register endpoint.
-        usbd_status = USBD_HW_register_endpoint((USB_physical_endpoint_t*) ((USBD_CDC_COM_INTERFACE.endpoint_list)[idx]->physical_endpoint));
-        USBD_exit_error(USBD_CDC_ERROR_BASE_HW_INTERFACE);
+        status = USBD_HW_register_endpoint((USB_physical_endpoint_t*) ((USBD_CDC_COMM_INTERFACE.endpoint_list)[idx]->physical_endpoint));
+        if (status != USB_SUCCESS) goto errors;
     }
     for (idx = 0; idx < (USBD_CDC_DATA_INTERFACE.number_of_endpoints); idx++) {
         // Register endpoint.
-        usbd_status = USBD_HW_register_endpoint((USB_physical_endpoint_t*) ((USBD_CDC_DATA_INTERFACE.endpoint_list)[idx]->physical_endpoint));
-        USBD_exit_error(USBD_CDC_ERROR_BASE_HW_INTERFACE);
+        status = USBD_HW_register_endpoint((USB_physical_endpoint_t*) ((USBD_CDC_DATA_INTERFACE.endpoint_list)[idx]->physical_endpoint));
+        if (status != USB_SUCCESS) goto errors;
     }
 errors:
     return status;
 }
 
 /*******************************************************************/
-USBD_CDC_status_t USBD_CDC_de_init(void) {
+USB_status_t USBD_CDC_de_init(void) {
     // Local variables.
-    USBD_CDC_status_t status = USBD_CDC_SUCCESS;
-    USBD_status_t usbd_status = USBD_SUCCESS;
+    USB_status_t status = USB_SUCCESS;
     // Registers endpoints.
     uint8_t idx = 0;
     // Endpoints loop.
-    for (idx = 0; idx < (USBD_CDC_COM_INTERFACE.number_of_endpoints); idx++) {
+    for (idx = 0; idx < (USBD_CDC_COMM_INTERFACE.number_of_endpoints); idx++) {
         // Register endpoint.
-        usbd_status = USBD_HW_unregister_endpoint((USB_physical_endpoint_t*) ((USBD_CDC_COM_INTERFACE.endpoint_list)[idx]->physical_endpoint));
-        USBD_exit_error(USBD_CDC_ERROR_BASE_HW_INTERFACE);
+        status = USBD_HW_unregister_endpoint((USB_physical_endpoint_t*) ((USBD_CDC_COMM_INTERFACE.endpoint_list)[idx]->physical_endpoint));
+        if (status != USB_SUCCESS) goto errors;
     }
     for (idx = 0; idx < (USBD_CDC_DATA_INTERFACE.number_of_endpoints); idx++) {
         // Register endpoint.
-        usbd_status = USBD_HW_unregister_endpoint((USB_physical_endpoint_t*) ((USBD_CDC_DATA_INTERFACE.endpoint_list)[idx]->physical_endpoint));
-        USBD_exit_error(USBD_CDC_ERROR_BASE_HW_INTERFACE);
+        status = USBD_HW_unregister_endpoint((USB_physical_endpoint_t*) ((USBD_CDC_DATA_INTERFACE.endpoint_list)[idx]->physical_endpoint));
+        if (status != USB_SUCCESS) goto errors;
     }
 errors:
     return status;

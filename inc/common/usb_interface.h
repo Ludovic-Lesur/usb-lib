@@ -11,6 +11,7 @@
 #include "common/usb_class.h"
 #include "common/usb_descriptor.h"
 #include "common/usb_endpoint.h"
+#include "common/usb_request.h"
 #include "types.h"
 
 /*** USB INTERFACE structures ***/
@@ -41,6 +42,7 @@ typedef struct {
     const uint8_t number_of_endpoints;
     const uint8_t** cs_descriptor;
     const uint8_t* cs_descriptor_length;
+    USB_request_cb_t request_callback;
 } USB_interface_t;
 
 #endif /* __USB_INTERFACE_H__ */

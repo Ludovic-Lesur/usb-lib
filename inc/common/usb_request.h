@@ -8,6 +8,7 @@
 #ifndef __USB_REQUEST_H__
 #define __USB_REQUEST_H__
 
+#include "common/usb_types.h"
 #include "types.h"
 
 /*** USB REQUEST structures ***/
@@ -100,5 +101,11 @@ typedef struct {
     uint16_t wIndex;
     uint16_t wLength;
 } __attribute__((packed)) USB_request_t;
+
+/*!******************************************************************
+ * \fn USB_request_cb_t
+ * \brief USB request execution callback.
+ *******************************************************************/
+typedef USB_status_t (*USB_request_cb_t)(USB_request_t* request, USB_data_t* data_in);
 
 #endif /* __USB_REQUEST_H__ */

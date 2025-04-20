@@ -34,6 +34,8 @@
 static void _USBD_CONTROL_endpoint_out_callback(void);
 static void _USBD_CONTROL_endpoint_in_callback(void);
 
+static USB_status_t _USBD_CONTROL_standard_request_callback(USB_request_t* request, USB_data_t* data_in);
+
 /*** USBD CONTROL local structures ***/
 
 /*******************************************************************/
@@ -55,7 +57,8 @@ typedef union {
 typedef struct {
     volatile USBD_CONTROL_flags_t flags;
     const USB_device_t* device;
-    USBD_CONTROL_requests_callbacks_t* requests_callbacks;
+    USBD_CONTROL_callbacks_t* callbacks;
+    uint8_t current_configuration_index;
     uint8_t full_configuration_descriptor[USBD_CONTROL_DESCRIPTOR_BUFFER_SIZE_BYTES];
     uint8_t string_descriptor[USBD_CONTROL_DESCRIPTOR_BUFFER_SIZE_BYTES];
     USB_data_t data_out;
@@ -145,7 +148,8 @@ static const USB_interface_descriptor_t USBD_CONTROL_INTERFACE_DESCRIPTOR = {
 static USBD_CONTROL_context_t usbd_control_ctx = {
     .flags.all = 0,
     .device = NULL,
-    .requests_callbacks = NULL
+    .callbacks = NULL,
+    .current_configuration_index = 0
 };
 
 /*** USBD CONTROL global variables ***/
@@ -155,7 +159,8 @@ const USB_interface_t USBD_CONTROL_INTERFACE = {
     .number_of_endpoints = USBD_CONTROL_ENDPOINT_INDEX_LAST,
     .endpoint_list = (const USB_endpoint_t**) &USBD_CONTROL_EP_LIST,
     .cs_descriptor = NULL,
-    .cs_descriptor_length = NULL
+    .cs_descriptor_length = NULL,
+    .request_callback = &_USBD_CONTROL_standard_request_callback
 };
 
 /*** USBD CONTROL local functions ***/
@@ -166,15 +171,34 @@ const USB_interface_t USBD_CONTROL_INTERFACE = {
     usbd_control_ctx.full_configuration_descriptor[full_idx++] = new_byte; \
     /* Check length */ \
     if (full_idx >= USBD_CONTROL_DESCRIPTOR_BUFFER_SIZE_BYTES) { \
-        status = USBD_CONTROL_ERROR_FULL_CONFIGURATION_DESCRIPTOR_SIZE; \
+        status = USB_ERROR_CONFIGURATION_DESCRIPTOR_SIZE; \
         goto errors; \
     } \
 }
 
 /*******************************************************************/
-static USBD_CONTROL_status_t _USBD_CONTROL_build_full_configuration_descriptor(uint8_t index) {
+static USB_status_t _USBD_CONTROL_update_configuration_index(uint8_t bConfigurationValue) {
     // Local variables.
-    USBD_CONTROL_status_t status = USBD_CONTROL_SUCCESS;
+    USB_status_t status = USB_ERROR_CONFIGURATION_VALUE;
+    uint8_t idx = 0;
+    // Configurations loop.
+    for (idx = 0; idx < (usbd_control_ctx.device->number_of_configurations); idx++) {
+        // Check if configuration number matches.
+        if (usbd_control_ctx.device->configuration_list[idx]->descriptor->bConfigurationValue == bConfigurationValue) {
+            // Update index.
+            usbd_control_ctx.current_configuration_index = idx;
+            // Exit loop.
+            status = USB_SUCCESS;
+            break;
+        }
+    }
+    return status;
+}
+
+/*******************************************************************/
+static USB_status_t _USBD_CONTROL_build_full_configuration_descriptor(uint8_t index) {
+    // Local variables.
+    USB_status_t status = USB_SUCCESS;
     const USB_configuration_t* configuration_ptr = NULL;
     const USB_interface_t* interface_ptr = NULL;
     const USB_endpoint_t* endpoint_ptr = NULL;
@@ -185,7 +209,7 @@ static USBD_CONTROL_status_t _USBD_CONTROL_build_full_configuration_descriptor(u
     uint32_t idx = 0;
     // Check index.
     if (index >= (usbd_control_ctx.device->number_of_configurations)) {
-        status = USBD_CONTROL_ERROR_CONFIGURATION_INDEX;
+        status = USB_ERROR_CONFIGURATION_INDEX;
         goto errors;
     }
     // Set configuration pointer.
@@ -231,9 +255,9 @@ errors:
 }
 
 /*******************************************************************/
-static USBD_CONTROL_status_t _USBD_CONTROL_get_descriptor(USB_descriptor_type_t type, uint8_t index, uint8_t** descriptor_ptr, uint32_t* descriptor_size_bytes) {
+static USB_status_t _USBD_CONTROL_get_descriptor(USB_descriptor_type_t type, uint8_t index, uint8_t** descriptor_ptr, uint32_t* descriptor_size_bytes) {
     // Local variables.
-    USBD_CONTROL_status_t status = USBD_CONTROL_SUCCESS;
+    USB_status_t status = USB_SUCCESS;
     STRING_status_t string_status = STRING_SUCCESS;
     uint32_t str_size = 0;
     uint32_t full_idx = 0;
@@ -255,7 +279,7 @@ static USBD_CONTROL_status_t _USBD_CONTROL_get_descriptor(USB_descriptor_type_t 
     case USB_DESCRIPTOR_TYPE_OTHER_SPEED_CONFIGURATION:
         // Build configuration descriptor.
         status = _USBD_CONTROL_build_full_configuration_descriptor(index);
-        if (status != USBD_CONTROL_SUCCESS) goto errors;
+        if (status != USB_SUCCESS) goto errors;
         // Update pointers.
         (*descriptor_ptr) = (uint8_t*) &(usbd_control_ctx.full_configuration_descriptor);
         (*descriptor_size_bytes) = usbd_control_ctx.full_configuration_descriptor[USBD_CONTROL_DESCRIPTOR_TOTAL_LENGTH_INDEX];
@@ -263,12 +287,12 @@ static USBD_CONTROL_status_t _USBD_CONTROL_get_descriptor(USB_descriptor_type_t 
     case USB_DESCRIPTOR_TYPE_STRING:
         // Check index.
         if (index >= usbd_control_ctx.device->number_of_string_descriptors) {
-            status = USBD_CONTROL_ERROR_STRING_DESCRIPTOR_INDEX;
+            status = USB_ERROR_STRING_DESCRIPTOR_INDEX;
             goto errors;
         }
         // Get string length.
         string_status = STRING_get_size((char_t*) (usbd_control_ctx.device->string_descriptor_list[index]), &str_size);
-        STRING_exit_error(USBD_CONTROL_ERROR_BASE_STRING);
+        STRING_exit_error(USB_ERROR_BASE_STRING);
         // Build string descriptor.
         usbd_control_ctx.string_descriptor[full_idx++] = (sizeof(USB_string_descriptor_t) + (str_size << ((index == USB_STRING_DESCRIPTOR_INDEX_LANGID) ? 0 : 1)));
         usbd_control_ctx.string_descriptor[full_idx++] = USB_DESCRIPTOR_TYPE_STRING;
@@ -284,7 +308,7 @@ static USBD_CONTROL_status_t _USBD_CONTROL_get_descriptor(USB_descriptor_type_t 
         (*descriptor_size_bytes) = usbd_control_ctx.string_descriptor[0];
         break;
     default:
-        status = USBD_CONTROL_ERROR_DESCRIPTOR_TYPE;
+        status = USB_ERROR_DESCRIPTOR_TYPE;
         goto errors;
     }
 errors:
@@ -292,29 +316,33 @@ errors:
 }
 
 /*******************************************************************/
-static USBD_CONTROL_status_t _USBD_CONTROL_decode_standard_request(uint8_t bRequest, uint8_t wValue_high, uint8_t wValue_low) {
+static USB_status_t _USBD_CONTROL_standard_request_callback(USB_request_t* request, USB_data_t* data_in) {
     // Local variables.
-    USBD_CONTROL_status_t status = USBD_CONTROL_SUCCESS;
-    USBD_status_t usbd_status = USBD_SUCCESS;
+    USB_status_t status = USB_SUCCESS;
+    uint8_t wValue_high = (uint8_t) ((request->wValue >> 8) & 0xFF);
+    uint8_t wValue_low = (uint8_t) ((request->wValue >> 0) & 0xFF);
     // Check request.
-    switch (bRequest) {
+    switch (request->bRequest) {
     case USB_REQUEST_GET_DESCRIPTOR:
         // Read descriptor.
-        status = _USBD_CONTROL_get_descriptor(wValue_high, wValue_low, &(usbd_control_ctx.data_in.data), &(usbd_control_ctx.data_in.size_bytes));
-        if (status != USBD_CONTROL_SUCCESS) goto errors;
+        status = _USBD_CONTROL_get_descriptor(wValue_high, wValue_low, &(data_in->data), &(data_in->size_bytes));
+        if (status != USB_SUCCESS) goto errors;
         break;
     case USB_REQUEST_SET_ADDRESS:
         // Set address on hardware side.
-        usbd_status = USBD_HW_set_address(wValue_low);
-        USBD_exit_error(USBD_CONTROL_ERROR_BASE_HW_INTERFACE);
+        status = USBD_HW_set_address(wValue_low);
+        if (status != USB_SUCCESS) goto errors;
         break;
     case USB_REQUEST_SET_CONFIGURATION:
         // Set configuration.
-        status = usbd_control_ctx.requests_callbacks->set_configuration(wValue_low);
-        if (status != USBD_CONTROL_SUCCESS) goto errors;
+        status = usbd_control_ctx.callbacks->set_configuration_request(wValue_low);
+        if (status != USB_SUCCESS) goto errors;
+        // Update local context.
+        status = _USBD_CONTROL_update_configuration_index(wValue_low);
+        if (status != USB_SUCCESS) goto errors;
         break;
     default:
-        status = USBD_CONTROL_ERROR_STANDARD_REQUEST;
+        status = USB_ERROR_STANDARD_REQUEST;
         goto errors;
     }
 errors:
@@ -322,20 +350,20 @@ errors:
 }
 
 /*******************************************************************/
-static USBD_CONTROL_status_t _USBD_CONTROL_decode_request(USB_request_operation_t* request_operation) {
+static USB_status_t _USBD_CONTROL_decode_request(USB_request_operation_t* request_operation) {
     // Local variables.
-    USBD_CONTROL_status_t status = USBD_CONTROL_SUCCESS;
-    USB_request_t* request_packet;
-    uint8_t wValue_high = 0;
-    uint8_t wValue_low = 0;
+    USB_status_t status = USB_SUCCESS;
+    const USB_configuration_t* configuration_ptr = NULL;
+    const USB_interface_t* interface_ptr = NULL;
+    USB_request_t* request;
     // Check parameters.
     if (request_operation == NULL) {
-        status = USBD_CONTROL_ERROR_NULL_PARAMETER;
+        status = USB_ERROR_NULL_PARAMETER;
         goto errors;
     }
     // Check data size.
     if ((usbd_control_ctx.data_out.size_bytes) < sizeof(USB_request_t)) {
-        status = USBD_CONTROL_ERROR_REQUEST_SIZE;
+        status = USB_ERROR_REQUEST_SIZE;
         goto errors;
     }
     // Reset setup request operation.
@@ -344,26 +372,47 @@ static USBD_CONTROL_status_t _USBD_CONTROL_decode_request(USB_request_operation_
     usbd_control_ctx.data_in.data = NULL;
     usbd_control_ctx.data_in.size_bytes = 0;
     // Cast frame.
-    request_packet = (USB_request_t*) (usbd_control_ctx.data_out.data);
-    // Parse fields.
-    wValue_high = (uint8_t) (((request_packet->wValue) >> 8) & 0xFF);
-    wValue_low = (uint8_t) (((request_packet->wValue) >> 0) & 0xFF);
+    request = (USB_request_t*) (usbd_control_ctx.data_out.data);
     // Check type.
-    switch (request_packet->bmRequestType.type) {
+    switch (request->bmRequestType.type) {
     case USB_REQUEST_TYPE_STANDARD:
-        status = _USBD_CONTROL_decode_standard_request((request_packet->bRequest), wValue_high, wValue_low);
-        if (status != USBD_CONTROL_SUCCESS) goto errors;
+        // Decode standard request.
+        status = _USBD_CONTROL_standard_request_callback(request, &(usbd_control_ctx.data_in));
+        if (status != USB_SUCCESS) goto errors;
+        break;
+    case USB_REQUEST_TYPE_CLASS:
+        // Search corresponding interface.
+        configuration_ptr = usbd_control_ctx.device->configuration_list[usbd_control_ctx.current_configuration_index];
+        interface_ptr = configuration_ptr->interface_list[request->wIndex];
+        // Check request callback.
+        if (interface_ptr->request_callback == NULL) {
+            status = USB_ERROR_VENDOR_REQUEST;
+            goto errors;
+        }
+        // Execute class specific callback.
+        status = interface_ptr->request_callback(request, &(usbd_control_ctx.data_in));
+        if (status != USB_SUCCESS) goto errors;
+        break;
+    case USB_REQUEST_TYPE_VENDOR:
+        // Check vendor callback.
+        if (usbd_control_ctx.callbacks->vendor_request == NULL) {
+            status = USB_ERROR_VENDOR_REQUEST;
+            goto errors;
+        }
+        // Execute external callback.
+        status = usbd_control_ctx.callbacks->vendor_request(request, &(usbd_control_ctx.data_in));
+        if (status != USB_SUCCESS) goto errors;
         break;
     default:
-        status = USBD_CONTROL_ERROR_REQUEST_TYPE;
+        status = USB_ERROR_REQUEST_TYPE;
         goto errors;
     }
     // Compute transfer type.
-    if ((request_packet->wLength) == 0) {
+    if ((request->wLength) == 0) {
         (*request_operation) = USB_REQUEST_OPERATION_WRITE_NO_DATA;
     }
     else {
-        if (((request_packet->bmRequestType).direction) == USB_REQUEST_DIRECTION_HOST_TO_DEVICE) {
+        if (((request->bmRequestType).direction) == USB_REQUEST_DIRECTION_HOST_TO_DEVICE) {
             (*request_operation) = USB_REQUEST_OPERATION_WRITE;
         }
         else {
@@ -371,8 +420,8 @@ static USBD_CONTROL_status_t _USBD_CONTROL_decode_request(USB_request_operation_
         }
     }
     // Clamp data size according to request.
-    if ((usbd_control_ctx.data_in.size_bytes) > (request_packet->wLength)) {
-        usbd_control_ctx.data_in.size_bytes = (request_packet->wLength);
+    if ((usbd_control_ctx.data_in.size_bytes) > (request->wLength)) {
+        usbd_control_ctx.data_in.size_bytes = (request->wLength);
     }
 errors:
     return status;
@@ -381,18 +430,18 @@ errors:
 /*******************************************************************/
 static void _USBD_CONTROL_setup_callback(USB_request_operation_t* setup_request_type) {
     // Local variables.
-    USBD_CONTROL_status_t status = USBD_CONTROL_SUCCESS;
-    USBD_status_t usbd_status = USBD_SUCCESS;
+    USB_status_t status = USB_SUCCESS;
     // Read data.
-    usbd_status = USBD_HW_read((USB_physical_endpoint_t*) &USBD_CONTROL_EP_PHY_OUT, &usbd_control_ctx.data_out);
-    USBD_exit_error(USBD_CONTROL_ERROR_BASE_HW_INTERFACE);
+    status = USBD_HW_read((USB_physical_endpoint_t*) &USBD_CONTROL_EP_PHY_OUT, &usbd_control_ctx.data_out);
+    if (status != USB_SUCCESS) goto errors;
     // Decode request.
     status = _USBD_CONTROL_decode_request(setup_request_type);
-    if (status != USBD_CONTROL_SUCCESS) goto errors;
-    // Send reply is needed.
+    if (status != USB_SUCCESS) goto errors;
+    // Check if there is IN data to send.
     if ((usbd_control_ctx.data_in.data != NULL) && (usbd_control_ctx.data_in.size_bytes != 0)) {
-        usbd_status = USBD_HW_write((USB_physical_endpoint_t*) &USBD_CONTROL_EP_PHY_IN, &usbd_control_ctx.data_in);
-        USBD_exit_error(USBD_CONTROL_ERROR_BASE_HW_INTERFACE);
+        // Send data to host.
+        status = USBD_HW_write((USB_physical_endpoint_t*) &USBD_CONTROL_EP_PHY_IN, &usbd_control_ctx.data_in);
+        if (status != USB_SUCCESS) goto errors;
     }
 errors:
     return;
@@ -411,34 +460,33 @@ static void _USBD_CONTROL_endpoint_in_callback(void) {
 /*** USB functions ***/
 
 /*******************************************************************/
-USBD_CONTROL_status_t USBD_CONTROL_init(const USB_device_t* device, USBD_CONTROL_requests_callbacks_t* requests_callbacks) {
+USB_status_t USBD_CONTROL_init(const USB_device_t* device, USBD_CONTROL_callbacks_t* control_callbacks) {
     // Local variables.
-    USBD_CONTROL_status_t status = USBD_CONTROL_SUCCESS;
-    USBD_status_t usbd_status = USBD_SUCCESS;
+    USB_status_t status = USB_SUCCESS;
     uint8_t idx = 0;
     // Check parameter.
-    if ((device == NULL) || (requests_callbacks == NULL)) {
-        status = USBD_CONTROL_ERROR_NULL_PARAMETER;
+    if ((device == NULL) || (control_callbacks == NULL)) {
+        status = USB_ERROR_NULL_PARAMETER;
         goto errors;
     }
     // Check state.
     if (usbd_control_ctx.flags.init != 0) {
-        status = USBD_CONTROL_ERROR_ALREADY_INITIALIZED;
+        status = USB_ERROR_ALREADY_INITIALIZED;
         goto errors;
     }
     // Reset flags.
     usbd_control_ctx.flags.all = 0;
     // Register device and callbacks.
     usbd_control_ctx.device = device;
-    usbd_control_ctx.requests_callbacks = requests_callbacks;
+    usbd_control_ctx.callbacks = control_callbacks;
     // Register endpoints.
     for (idx = 0; idx < (USBD_CONTROL_INTERFACE.number_of_endpoints); idx++) {
-        usbd_status = USBD_HW_register_endpoint((USB_physical_endpoint_t*) ((USBD_CONTROL_INTERFACE.endpoint_list)[idx]->physical_endpoint));
-        USBD_exit_error(USBD_CONTROL_ERROR_BASE_HW_INTERFACE);
+        status = USBD_HW_register_endpoint((USB_physical_endpoint_t*) ((USBD_CONTROL_INTERFACE.endpoint_list)[idx]->physical_endpoint));
+        if (status != USB_SUCCESS) goto errors;
     }
     // Register setup callback.
-    usbd_status = USBD_HW_register_setup_callback(&_USBD_CONTROL_setup_callback);
-    USBD_exit_error(USBD_CONTROL_ERROR_BASE_HW_INTERFACE);
+    status = USBD_HW_register_setup_callback(&_USBD_CONTROL_setup_callback);
+    if (status != USB_SUCCESS) goto errors;
     // Update initialization flag.
     usbd_control_ctx.flags.init = 1;
 errors:
@@ -446,24 +494,23 @@ errors:
 }
 
 /*******************************************************************/
-USBD_CONTROL_status_t USBD_CONTROL_de_init(void) {
+USB_status_t USBD_CONTROL_de_init(void) {
     // Local variables.
-    USBD_CONTROL_status_t status = USBD_CONTROL_SUCCESS;
-    USBD_status_t usbd_status = USBD_SUCCESS;
+    USB_status_t status = USB_SUCCESS;
     uint8_t idx = 0;
     // Check state.
     if (usbd_control_ctx.flags.init == 0) {
-        status = USBD_CONTROL_ERROR_UNINITIALIZED;
+        status = USB_ERROR_UNINITIALIZED;
         goto errors;
     }
     // Reset context.
     usbd_control_ctx.flags.all = 0;
     usbd_control_ctx.device = NULL;
-    usbd_control_ctx.requests_callbacks = NULL;
+    usbd_control_ctx.callbacks = NULL;
     // Unregister endpoints.
     for (idx = 0; idx < (USBD_CONTROL_INTERFACE.number_of_endpoints); idx++) {
-        usbd_status = USBD_HW_unregister_endpoint((USB_physical_endpoint_t*) ((USBD_CONTROL_INTERFACE.endpoint_list)[idx]->physical_endpoint));
-        USBD_exit_error(USBD_CONTROL_ERROR_BASE_HW_INTERFACE);
+        status = USBD_HW_unregister_endpoint((USB_physical_endpoint_t*) ((USBD_CONTROL_INTERFACE.endpoint_list)[idx]->physical_endpoint));
+        if (status != USB_SUCCESS) goto errors;
     }
     // Update initialization flag.
     usbd_control_ctx.flags.init = 0;

@@ -7,6 +7,7 @@
 
 #include "device/usbd.h"
 
+#include "common/usb_types.h"
 #include "device/usbd_hw.h"
 
 #ifndef USB_LIB_DISABLE
@@ -35,17 +36,17 @@ static USBD_context_t usbd_ctx = {
 /*** USBD functions ***/
 
 /*******************************************************************/
-USBD_status_t USBD_init(void) {
+USB_status_t USBD_init(void) {
     // Local variables.
-    USBD_status_t status = USBD_SUCCESS;
+    USB_status_t status = USB_SUCCESS;
     // Check state.
     if (usbd_ctx.flags.init != 0) {
-        status = USBD_ERROR_ALREADY_INITIALIZED;
+        status = USB_ERROR_ALREADY_INITIALIZED;
         goto errors;
     }
     // Init hardware interface.
     status = USBD_HW_init();
-    if (status != USBD_SUCCESS) goto errors;
+    if (status != USB_SUCCESS) goto errors;
     // Init context.
     usbd_ctx.flags.all = 0;
     // Update initialization flag.
@@ -55,17 +56,17 @@ errors:
 }
 
 /*******************************************************************/
-USBD_status_t USBD_de_init(void) {
+USB_status_t USBD_de_init(void) {
     // Local variables.
-    USBD_status_t status = USBD_SUCCESS;
+    USB_status_t status = USB_SUCCESS;
     // Check state.
     if (usbd_ctx.flags.init == 0) {
-        status = USBD_ERROR_UNINITIALIZED;
+        status = USB_ERROR_UNINITIALIZED;
         goto errors;
     }
     // Init hardware interface.
     status = USBD_HW_de_init();
-    if (status != USBD_SUCCESS) goto errors;
+    if (status != USB_SUCCESS) goto errors;
     // Update initialization flag.
     usbd_ctx.flags.init = 0;
 errors:
@@ -73,33 +74,33 @@ errors:
 }
 
 /*******************************************************************/
-USBD_status_t USBD_start(void) {
+USB_status_t USBD_start(void) {
     // Local variables.
-    USBD_status_t status = USBD_SUCCESS;
+    USB_status_t status = USB_SUCCESS;
     // Check state.
     if (usbd_ctx.flags.init == 0) {
-        status = USBD_ERROR_UNINITIALIZED;
+        status = USB_ERROR_UNINITIALIZED;
         goto errors;
     }
     // Start hardware interface.
     status = USBD_HW_start();
-    if (status != USBD_SUCCESS) goto errors;
+    if (status != USB_SUCCESS) goto errors;
 errors:
     return status;
 }
 
 /*******************************************************************/
-USBD_status_t USBD_stop(void) {
+USB_status_t USBD_stop(void) {
     // Local variables.
-    USBD_status_t status = USBD_SUCCESS;
+    USB_status_t status = USB_SUCCESS;
     // Check state.
     if (usbd_ctx.flags.init == 0) {
-        status = USBD_ERROR_UNINITIALIZED;
+        status = USB_ERROR_UNINITIALIZED;
         goto errors;
     }
     // Stop hardware interface.
     status = USBD_HW_stop();
-    if (status != USBD_SUCCESS) goto errors;
+    if (status != USB_SUCCESS) goto errors;
 errors:
     return status;
 }

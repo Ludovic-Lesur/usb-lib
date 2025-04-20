@@ -18,10 +18,10 @@
 #define USBD_CDC
 
 #ifdef USBD_CDC
-#define USBD_CDC_COM_INTERFACE_INDEX                        1
-#define USBD_CDC_COM_INTERFACE_STRING_DESCRIPTOR_INDEX      1
-#define USBD_CDC_COM_ENDPOINT_NUMBER                        1
-#define USBD_CDC_COM_PACKET_SIZE_BYTES                      16
+#define USBD_CDC_COMM_INTERFACE_INDEX                       1
+#define USBD_CDC_COMM_INTERFACE_STRING_DESCRIPTOR_INDEX     1
+#define USBD_CDC_COMM_ENDPOINT_NUMBER                       1
+#define USBD_CDC_COMM_PACKET_SIZE_BYTES                     16
 
 #define USBD_CDC_DATA_INTERFACE_INDEX                       2
 #define USBD_CDC_DATA_INTERFACE_STRING_DESCRIPTOR_INDEX     2

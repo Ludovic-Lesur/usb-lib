@@ -30,10 +30,10 @@ Here is the versions compatibility table:
 | `USBD_CONTROL_INTERFACE_INDEX` | `<value>` | Index of the device control interface. |
 | `USBD_CONTROL_INTERFACE_STRING_DESCRIPTOR_INDEX` | `<value>` | Index of the device control interface string descriptor. |
 | `USBD_CDC` | `defined` / `undefined` | Enable the CDC device class if defined. |
-| `USBD_CDC_COM_INTERFACE_INDEX` | `<value>` | Index of the device CDC COM interface. |
-| `USBD_CDC_COM_INTERFACE_STRING_DESCRIPTOR_INDEX` | `<value>` | Index of the device CDC COM interface string descriptor. |
-| `USBD_CDC_COM_ENDPOINT_NUMBER` | `<value>` | Endpoint number assigned to the device CDC COM interface. |
-| `USBD_CDC_COM_PACKET_SIZE_BYTES` | `<value>` | Maximum packet size of the device CDC COM interface. |
+| `USBD_CDC_COMM_INTERFACE_INDEX` | `<value>` | Index of the device CDC COMM interface. |
+| `USBD_CDC_COMM_INTERFACE_STRING_DESCRIPTOR_INDEX` | `<value>` | Index of the device CDC COMM interface string descriptor. |
+| `USBD_CDC_COMM_ENDPOINT_NUMBER` | `<value>` | Endpoint number assigned to the device CDC COMM interface. |
+| `USBD_CDC_COMM_PACKET_SIZE_BYTES` | `<value>` | Maximum packet size of the device CDC COMM interface. |
 | `USBD_CDC_DATA_INTERFACE_INDEX` | `<value>` | Index of the device CDC DATA interface. |
 | `USBD_CDC_DATA_INTERFACE_STRING_DESCRIPTOR_INDEX` | `<value>` | Index of the device CDC DATA interface string descriptor. |
 | `USBD_CDC_DATA_ENDPOINT_NUMBER` | `<value>` | Endpoint number assigned to the device CDC DATA interface. |
