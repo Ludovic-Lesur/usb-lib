@@ -47,7 +47,7 @@ typedef enum {
 } USB_request_recipient_t;
 
 /*!******************************************************************
- * \enum USB_request_BRequest_t
+ * \enum USB_request_standard_t
  * \brief USB standard requests list.
  *******************************************************************/
 typedef enum {
@@ -106,6 +106,6 @@ typedef struct {
  * \fn USB_request_cb_t
  * \brief USB request execution callback.
  *******************************************************************/
-typedef USB_status_t (*USB_request_cb_t)(USB_request_t* request, USB_data_t* data_in);
+typedef USB_status_t (*USB_request_cb_t)(USB_request_t* request, USB_data_t* data_out, USB_data_t* data_in);
 
 #endif /* __USB_REQUEST_H__ */

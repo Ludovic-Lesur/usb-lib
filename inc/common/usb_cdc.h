@@ -86,6 +86,70 @@ typedef enum {
 } USB_CDC_descriptor_subtype_t;
 
 /*!******************************************************************
+ * \enum USB_CDC_request_t
+ * \brief USB CDC specific requests list.
+ *******************************************************************/
+typedef enum {
+    USB_CDC_REQUEST_SEND_ENCAPSULATED_COMMAND = 0x00,
+    USB_CDC_REQUEST_GET_ENCAPSULATED_RESPONSE = 0x01,
+    USB_CDC_REQUEST_SET_COMM_FEATURE = 0x02,
+    USB_CDC_REQUEST_GET_COMM_FEATURE = 0x03,
+    USB_CDC_REQUEST_CLEAR_COMM_FEATURE = 0x04,
+    USB_CDC_REQUEST_SET_AUX_LINE_STATE = 0x10,
+    USB_CDC_REQUEST_SET_HOOK_STATE = 0x11,
+    USB_CDC_REQUEST_PULSE_SETUP = 0x12,
+    USB_CDC_REQUEST_SEND_PULSE = 0x13,
+    USB_CDC_REQUEST_SET_PULSE_TIME = 0x14,
+    USB_CDC_REQUEST_RING_AUX_JACK = 0x15,
+    USB_CDC_REQUEST_SET_LINE_CODING = 0x20,
+    USB_CDC_REQUEST_GET_LINE_CODING = 0x21,
+    USB_CDC_REQUEST_SET_CONTROL_LINE_STATE = 0x22,
+    USB_CDC_REQUEST_SEND_BREAK = 0x23,
+    USB_CDC_REQUEST_SET_RINGER_PARMS = 0x30,
+    USB_CDC_REQUEST_GET_RINGER_PARMS = 0x31,
+    USB_CDC_REQUEST_SET_OPERATION_PARMS = 0x32,
+    USB_CDC_REQUEST_GET_OPERATION_PARMS = 0x33,
+    USB_CDC_REQUEST_SET_LINE_PARMS = 0x34,
+    USB_CDC_REQUEST_GET_LINE_PARMS = 0x35,
+    USB_CDC_REQUEST_DIAL_DIGITS = 0x36,
+    USB_CDC_REQUEST_SET_UNIT_PARAMETER = 0x37,
+    USB_CDC_REQUEST_GET_UNIT_PARAMETER = 0x38,
+    USB_CDC_REQUEST_CLEAR_UNIT_PARAMETER = 0x39,
+    USB_CDC_REQUEST_GET_PROFILE = 0x3A,
+    USB_CDC_REQUEST_SET_ETHERNET_MULTICAST_FILTERS = 0x40,
+    USB_CDC_REQUEST_SET_ETHERNET_POWER_MANAGEMENT_PATTERN_FILTER = 0x41,
+    USB_CDC_REQUEST_GET_ETHERNET_POWER_MANAGEMENT_PATTERN_FILTER = 0x42,
+    USB_CDC_REQUEST_SET_ETHERNET_PACKET_FILTER = 0x43,
+    USB_CDC_REQUEST_GET_ETHERNET_STATISTICS = 0x44,
+    USB_CDC_REQUEST_SET_ATM_DATA_FORMAT = 0x50,
+    USB_CDC_REQUEST_GET_ATM_DEVICE_STATISTICS = 0x51,
+    USB_CDC_REQUEST_SET_ATM_DEFAULT_VC = 0x52,
+    USB_CDC_REQUEST_GET_ATM_VC_STATISTICS = 0x53,
+    USB_CDC_REQUEST_GET_NTB_PARAMETERS = 0x80,
+    USB_CDC_REQUEST_GET_NET_ADDRESS = 0x81,
+    USB_CDC_REQUEST_SET_NET_ADDRESS = 0x82,
+    USB_CDC_REQUEST_GET_NTB_FORMAT = 0x83,
+    USB_CDC_REQUEST_SET_NTB_FORMAT = 0x84,
+    USB_CDC_REQUEST_GET_NTB_INPUT_SIZE = 0x85,
+    USB_CDC_REQUEST_SET_NTB_INPUT_SIZE = 0x86,
+    USB_CDC_REQUEST_GET_MAX_DATAGRAM_SIZE = 0x87,
+    USB_CDC_REQUEST_SET_MAX_DATAGRAM_SIZE = 0x88,
+    USB_CDC_REQUEST_GET_CRC_MODE = 0x89,
+    USB_CDC_REQUEST_SET_CRC_MODE = 0x8A,
+    USB_CDC_REQUEST_LAST
+} USB_CDC_request_t;
+
+/*!******************************************************************
+ * \enum USB_CDC_request_t
+ * \brief USB CDC feature selection codes.
+ *******************************************************************/
+typedef enum {
+    USB_CDC_FEATURE_ABSTRACT_STATE = 0x01,
+    USB_CDC_FEATURE_COUNTRY_SETTING = 0x02,
+    USB_CDC_FEATURE_LAST
+} USB_CDC_feature_t;
+
+/*!******************************************************************
  * \struct USB_CDC_functional_descriptor_t
  * \brief USB CDC specific header descriptor.
  *******************************************************************/
@@ -158,5 +222,29 @@ typedef struct {
     uint8_t bControlInterface;
     uint8_t bSubordinateInterface;
 } __attribute__((packed)) USB_CDC_union_descriptor_t;
+
+/*!******************************************************************
+ * \struct USB_CDC_abstract_state
+ * \brief USB CDC abstract status format.
+ *******************************************************************/
+typedef union {
+    struct {
+        uint8_t idle_setting :1;
+        uint8_t data_multiplexed_state :1;
+        uint16_t reserved_15_2 :14;
+    } __attribute__((packed));
+    uint16_t value;
+} USB_CDC_abstract_state_t;
+
+/*!******************************************************************
+ * \struct USB_CDC_line_coding_t
+ * \brief USB CDC line coding format.
+ *******************************************************************/
+typedef struct {
+    uint32_t dwDTERate;
+    uint8_t bCharFormat;
+    uint8_t bParityType;
+    uint8_t bDataBits;
+} __attribute__((packed)) USB_CDC_line_coding_t;
 
 #endif /* __USB_CDC_H__ */

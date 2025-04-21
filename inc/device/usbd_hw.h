@@ -88,24 +88,33 @@ USB_status_t USBD_HW_start(void);
 USB_status_t USBD_HW_stop(void);
 
 /*!******************************************************************
- * \fn USB_status_t USBD_HW_write(USB_physical_endpoint_t* endpoint, USB_data_t* usb_data_in)
- * \brief Write data to USB bus.
+ * \fn USB_status_t USBD_HW_write_data(USB_physical_endpoint_t* endpoint, USB_data_t* usb_data_in)
+ * \brief Write data bytes to USB bus.
  * \param[in]   endpoint: Pointer to the physical endpoint to use.
  * \param[in]   usb_data_in: Pointer to the data to write.
  * \param[out]  none
  * \retval      Function execution status.
  *******************************************************************/
-USB_status_t USBD_HW_write(USB_physical_endpoint_t* endpoint, USB_data_t* usb_data_in);
+USB_status_t USBD_HW_write_data(USB_physical_endpoint_t* endpoint, USB_data_t* usb_data_in);
 
 /*!******************************************************************
- * \fn USB_status_t USBD_HW_read(USB_physical_endpoint_t* endpoint, USB_data_t* usb_data_out)
- * \brief Read data from USB bus.
+ * \fn USB_status_t USBD_HW_read_data(USB_physical_endpoint_t* endpoint, USB_data_t* usb_data_out)
+ * \brief Read data bytes from USB bus.
  * \param[in]   endpoint: Pointer to the physical endpoint to use.
- * \param[in]   usb_data_out: Pointer to the data to read.
+ * \param[out]  usb_data_out: Pointer to the data to read.
  * \param[out]  none
  * \retval      Function execution status.
  *******************************************************************/
-USB_status_t USBD_HW_read(USB_physical_endpoint_t* endpoint, USB_data_t* usb_data_out);
+USB_status_t USBD_HW_read_data(USB_physical_endpoint_t* endpoint, USB_data_t* usb_data_out);
+
+/*!******************************************************************
+ * \fn USB_status_t USBD_HW_read_setup(USB_data_t* usb_data_out)
+ * \brief Read setup bytes from USB bus control pipe.
+ * \param[in]   none
+ * \param[out]  usb_setup_out: Pointer to the setup bytes to read.
+ * \retval      Function execution status.
+ *******************************************************************/
+USB_status_t USBD_HW_read_setup(USB_data_t* usb_setup_out);
 
 #endif /* USB_LIB_DISABLE */
 

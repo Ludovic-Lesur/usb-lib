@@ -34,7 +34,7 @@
 static void _USBD_CONTROL_endpoint_out_callback(void);
 static void _USBD_CONTROL_endpoint_in_callback(void);
 
-static USB_status_t _USBD_CONTROL_standard_request_callback(USB_request_t* request, USB_data_t* data_in);
+static USB_status_t _USBD_CONTROL_standard_request_callback(USB_request_t* request, USB_data_t* data_out, USB_data_t* data_in);
 
 /*** USBD CONTROL local structures ***/
 
@@ -48,6 +48,8 @@ typedef enum {
 /*******************************************************************/
 typedef union {
     struct {
+        uint8_t in_request_pending :1;
+        uint8_t out_request_pending :1;
         uint8_t init :1;
     };
     uint8_t all;
@@ -58,9 +60,11 @@ typedef struct {
     volatile USBD_CONTROL_flags_t flags;
     const USB_device_t* device;
     USBD_CONTROL_callbacks_t* callbacks;
+    USB_request_operation_t request_operation;
     uint8_t current_configuration_index;
     uint8_t full_configuration_descriptor[USBD_CONTROL_DESCRIPTOR_BUFFER_SIZE_BYTES];
     uint8_t string_descriptor[USBD_CONTROL_DESCRIPTOR_BUFFER_SIZE_BYTES];
+    USB_data_t setup_out;
     USB_data_t data_out;
     USB_data_t data_in;
 } USBD_CONTROL_context_t;
@@ -149,6 +153,7 @@ static USBD_CONTROL_context_t usbd_control_ctx = {
     .flags.all = 0,
     .device = NULL,
     .callbacks = NULL,
+    .request_operation = USB_REQUEST_OPERATION_NOT_SUPPORTED,
     .current_configuration_index = 0
 };
 
@@ -316,11 +321,13 @@ errors:
 }
 
 /*******************************************************************/
-static USB_status_t _USBD_CONTROL_standard_request_callback(USB_request_t* request, USB_data_t* data_in) {
+static USB_status_t _USBD_CONTROL_standard_request_callback(USB_request_t* request, USB_data_t* data_out, USB_data_t* data_in) {
     // Local variables.
     USB_status_t status = USB_SUCCESS;
     uint8_t wValue_high = (uint8_t) ((request->wValue >> 8) & 0xFF);
     uint8_t wValue_low = (uint8_t) ((request->wValue >> 0) & 0xFF);
+    // Unused parameter.
+    UNUSED(data_out);
     // Check request.
     switch (request->bRequest) {
     case USB_REQUEST_GET_DESCRIPTOR:
@@ -350,47 +357,62 @@ errors:
 }
 
 /*******************************************************************/
-static USB_status_t _USBD_CONTROL_decode_request(USB_request_operation_t* request_operation) {
+static void _USBD_CONTROL_update_request_operation(void) {
+    // Local variables.
+    USB_request_t* request_ptr;
+    // Reset setup request operation.
+    usbd_control_ctx.request_operation = USB_REQUEST_OPERATION_NOT_SUPPORTED;
+    // Cast frame.
+    request_ptr = (USB_request_t*) (usbd_control_ctx.setup_out.data);
+    // Compute transfer type.
+    if ((request_ptr->wLength) == 0) {
+        usbd_control_ctx.request_operation = USB_REQUEST_OPERATION_WRITE_NO_DATA;
+    }
+    else {
+        if (((request_ptr->bmRequestType).direction) == USB_REQUEST_DIRECTION_HOST_TO_DEVICE) {
+            usbd_control_ctx.request_operation = USB_REQUEST_OPERATION_WRITE;
+        }
+        else {
+            usbd_control_ctx.request_operation = USB_REQUEST_OPERATION_READ;
+        }
+    }
+}
+
+/*******************************************************************/
+static USB_status_t _USBD_CONTROL_decode_request(void) {
     // Local variables.
     USB_status_t status = USB_SUCCESS;
     const USB_configuration_t* configuration_ptr = NULL;
     const USB_interface_t* interface_ptr = NULL;
-    USB_request_t* request;
-    // Check parameters.
-    if (request_operation == NULL) {
-        status = USB_ERROR_NULL_PARAMETER;
-        goto errors;
-    }
+    USB_request_t* request_ptr;
     // Check data size.
-    if ((usbd_control_ctx.data_out.size_bytes) < sizeof(USB_request_t)) {
+    if ((usbd_control_ctx.setup_out.size_bytes) < sizeof(USB_request_t)) {
         status = USB_ERROR_REQUEST_SIZE;
         goto errors;
     }
-    // Reset setup request operation.
-    (*request_operation) = USB_REQUEST_OPERATION_NOT_SUPPORTED;
     // Reset output data.
     usbd_control_ctx.data_in.data = NULL;
     usbd_control_ctx.data_in.size_bytes = 0;
     // Cast frame.
-    request = (USB_request_t*) (usbd_control_ctx.data_out.data);
+    request_ptr = (USB_request_t*) (usbd_control_ctx.setup_out.data);
     // Check type.
-    switch (request->bmRequestType.type) {
+    switch (request_ptr->bmRequestType.type) {
     case USB_REQUEST_TYPE_STANDARD:
         // Decode standard request.
-        status = _USBD_CONTROL_standard_request_callback(request, &(usbd_control_ctx.data_in));
+        status = _USBD_CONTROL_standard_request_callback(request_ptr, &usbd_control_ctx.data_out, &(usbd_control_ctx.data_in));
         if (status != USB_SUCCESS) goto errors;
         break;
     case USB_REQUEST_TYPE_CLASS:
         // Search corresponding interface.
         configuration_ptr = usbd_control_ctx.device->configuration_list[usbd_control_ctx.current_configuration_index];
-        interface_ptr = configuration_ptr->interface_list[request->wIndex];
+        interface_ptr = configuration_ptr->interface_list[request_ptr->wIndex];
         // Check request callback.
         if (interface_ptr->request_callback == NULL) {
             status = USB_ERROR_VENDOR_REQUEST;
             goto errors;
         }
         // Execute class specific callback.
-        status = interface_ptr->request_callback(request, &(usbd_control_ctx.data_in));
+        status = interface_ptr->request_callback(request_ptr, &usbd_control_ctx.data_out, &(usbd_control_ctx.data_in));
         if (status != USB_SUCCESS) goto errors;
         break;
     case USB_REQUEST_TYPE_VENDOR:
@@ -400,28 +422,35 @@ static USB_status_t _USBD_CONTROL_decode_request(USB_request_operation_t* reques
             goto errors;
         }
         // Execute external callback.
-        status = usbd_control_ctx.callbacks->vendor_request(request, &(usbd_control_ctx.data_in));
+        status = usbd_control_ctx.callbacks->vendor_request(request_ptr, &usbd_control_ctx.data_out, &(usbd_control_ctx.data_in));
         if (status != USB_SUCCESS) goto errors;
         break;
     default:
         status = USB_ERROR_REQUEST_TYPE;
         goto errors;
     }
-    // Compute transfer type.
-    if ((request->wLength) == 0) {
-        (*request_operation) = USB_REQUEST_OPERATION_WRITE_NO_DATA;
-    }
-    else {
-        if (((request->bmRequestType).direction) == USB_REQUEST_DIRECTION_HOST_TO_DEVICE) {
-            (*request_operation) = USB_REQUEST_OPERATION_WRITE;
-        }
-        else {
-            (*request_operation) = USB_REQUEST_OPERATION_READ;
-        }
-    }
     // Clamp data size according to request.
-    if ((usbd_control_ctx.data_in.size_bytes) > (request->wLength)) {
-        usbd_control_ctx.data_in.size_bytes = (request->wLength);
+    if ((usbd_control_ctx.data_in.size_bytes) > (request_ptr->wLength)) {
+        usbd_control_ctx.data_in.size_bytes = (request_ptr->wLength);
+    }
+errors:
+    return status;
+}
+
+/*******************************************************************/
+static USB_status_t _USBD_CONTROL_process_request(void) {
+    // Local variables.
+    USB_status_t status = USB_SUCCESS;
+    // Decode request.
+    status = _USBD_CONTROL_decode_request();
+    if (status != USB_SUCCESS) goto errors;
+    // Check if there is IN data to send.
+    if ((usbd_control_ctx.data_in.data != NULL) && (usbd_control_ctx.data_in.size_bytes != 0)) {
+        // Send data to host.
+        status = USBD_HW_write_data((USB_physical_endpoint_t*) &USBD_CONTROL_EP_PHY_IN, &usbd_control_ctx.data_in);
+        if (status != USB_SUCCESS) goto errors;
+        // Update flag.
+        usbd_control_ctx.flags.in_request_pending = 1;
     }
 errors:
     return status;
@@ -431,17 +460,33 @@ errors:
 static void _USBD_CONTROL_setup_callback(USB_request_operation_t* setup_request_type) {
     // Local variables.
     USB_status_t status = USB_SUCCESS;
-    // Read data.
-    status = USBD_HW_read((USB_physical_endpoint_t*) &USBD_CONTROL_EP_PHY_OUT, &usbd_control_ctx.data_out);
+    // Check parameter.
+    if (setup_request_type == NULL) goto errors;
+    // Reset request type.
+    (*setup_request_type) = USB_REQUEST_OPERATION_NOT_SUPPORTED;
+    // Check if there is no pending request.
+    if ((usbd_control_ctx.flags.in_request_pending != 0) || (usbd_control_ctx.flags.out_request_pending != 0)) goto errors;
+    // Read setup bytes.
+    status = USBD_HW_read_setup(&usbd_control_ctx.setup_out);
     if (status != USB_SUCCESS) goto errors;
-    // Decode request.
-    status = _USBD_CONTROL_decode_request(setup_request_type);
-    if (status != USB_SUCCESS) goto errors;
-    // Check if there is IN data to send.
-    if ((usbd_control_ctx.data_in.data != NULL) && (usbd_control_ctx.data_in.size_bytes != 0)) {
-        // Send data to host.
-        status = USBD_HW_write((USB_physical_endpoint_t*) &USBD_CONTROL_EP_PHY_IN, &usbd_control_ctx.data_in);
+    // Update request operation.
+    _USBD_CONTROL_update_request_operation();
+    // Update output parameter.
+    (*setup_request_type) = usbd_control_ctx.request_operation;
+    // Check request type.
+    switch (usbd_control_ctx.request_operation) {
+    case USB_REQUEST_OPERATION_READ:
+    case USB_REQUEST_OPERATION_WRITE_NO_DATA:
+        // Request can be processed directly.
+        status = _USBD_CONTROL_process_request();
         if (status != USB_SUCCESS) goto errors;
+        break;
+    case USB_REQUEST_OPERATION_WRITE:
+        // Wait for OUT data before processing request.
+        usbd_control_ctx.flags.out_request_pending = 1;
+        break;
+    default:
+        break;
     }
 errors:
     return;
@@ -449,12 +494,27 @@ errors:
 
 /*******************************************************************/
 static void _USBD_CONTROL_endpoint_out_callback(void) {
-    // TODO
+    // Local variables.
+    USB_status_t status = USB_SUCCESS;
+    // Check flag.
+    if (usbd_control_ctx.flags.out_request_pending != 0) {
+        // Read OUT data bytes.
+        status = USBD_HW_read_data((USB_physical_endpoint_t*) &USBD_CONTROL_EP_PHY_OUT, &usbd_control_ctx.data_out);
+        if (status != USB_SUCCESS) goto errors;
+        // Process request.
+        status = _USBD_CONTROL_process_request();
+        if (status != USB_SUCCESS) goto errors;
+    }
+errors:
+    // Clear flag.
+    usbd_control_ctx.flags.out_request_pending = 0;
+    return;
 }
 
 /*******************************************************************/
 static void _USBD_CONTROL_endpoint_in_callback(void) {
-    // TODO
+    // Clear flag.
+    usbd_control_ctx.flags.in_request_pending = 0;
 }
 
 /*** USB functions ***/

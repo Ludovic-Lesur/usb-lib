@@ -30,7 +30,7 @@
  * \brief USB device drivers error codes.
  *******************************************************************/
 typedef enum {
-    // Driver errors.
+    // Common errors.
     USB_SUCCESS = 0,
     USB_ERROR_NULL_PARAMETER,
     USB_ERROR_ALREADY_INITIALIZED,
@@ -49,6 +49,8 @@ typedef enum {
     USB_ERROR_CONFIGURATION_INDEX,
     USB_ERROR_STRING_DESCRIPTOR_INDEX,
     USB_ERROR_CS_DESCRIPTOR_SIZE,
+    // CDC errors.
+    USB_ERROR_CDC_FEATURE,
     // Low level drivers errors.
     USB_ERROR_BASE_HW_INTERFACE = ERROR_BASE_STEP,
     USB_ERROR_BASE_STRING = (USB_ERROR_BASE_HW_INTERFACE + USB_LIB_HW_INTERFACE_ERROR_BASE_LAST),

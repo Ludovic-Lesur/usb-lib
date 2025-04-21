@@ -84,7 +84,7 @@ USB_status_t __attribute__((weak)) USBD_HW_stop(void) {
 }
 
 /*******************************************************************/
-USB_status_t __attribute__((weak)) USBD_HW_write(USB_physical_endpoint_t* endpoint, USB_data_t* usb_data_in) {
+USB_status_t __attribute__((weak)) USBD_HW_write_data(USB_physical_endpoint_t* endpoint, USB_data_t* usb_data_in) {
     // Local variables.
     USB_status_t status = USB_SUCCESS;
     /* To be implemented */
@@ -94,12 +94,20 @@ USB_status_t __attribute__((weak)) USBD_HW_write(USB_physical_endpoint_t* endpoi
 }
 
 /*******************************************************************/
-USB_status_t __attribute__((weak)) USBD_HW_read(USB_physical_endpoint_t* endpoint, USB_data_t* usb_data_out) {
+USB_status_t __attribute__((weak)) USBD_HW_read_data(USB_physical_endpoint_t* endpoint, USB_data_t* usb_data_out) {
     // Local variables.
     USB_status_t status = USB_SUCCESS;
     /* To be implemented */
     UNUSED(endpoint);
     UNUSED(usb_data_out);
+    return status;
+}
+
+USB_status_t __attribute__((weak)) USBD_HW_read_setup(USB_data_t* usb_setup_out) {
+    // Local variables.
+    USB_status_t status = USB_SUCCESS;
+    /* To be implemented */
+    UNUSED(usb_setup_out);
     return status;
 }
 
