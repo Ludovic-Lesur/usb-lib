@@ -31,7 +31,7 @@
 typedef USB_status_t (*USB_control_set_configuration_cb_t)(uint8_t index);
 
 /*!******************************************************************
- * \enum USBD_CONTROL_callbacks_t
+ * \struct USBD_CONTROL_callbacks_t
  * \brief USBD CONTROL driver callbacks.
  *******************************************************************/
 typedef struct {

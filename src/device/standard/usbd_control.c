@@ -408,7 +408,7 @@ static USB_status_t _USBD_CONTROL_decode_request(void) {
         interface_ptr = configuration_ptr->interface_list[request_ptr->wIndex];
         // Check request callback.
         if (interface_ptr->request_callback == NULL) {
-            status = USB_ERROR_VENDOR_REQUEST;
+            status = USB_ERROR_CLASS_REQUEST;
             goto errors;
         }
         // Execute class specific callback.

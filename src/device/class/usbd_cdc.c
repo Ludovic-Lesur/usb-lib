@@ -26,9 +26,6 @@
 #define USBD_CDC_CS_DESCRIPTOR_BUFFER_SIZE_BYTES    256
 #define USBD_CDC_CS_DESCRIPTOR_LENGTH_INDEX         0
 
-#define USBD_CDC_ABSTRACT_STATE_DEFAULT             0x0000
-#define USBD_CDC_COUNTRY_SETTING_DEFAULT            0x00FA
-
 /*** USBD CDC local functions declaration ***/
 
 static void _USBD_CDC_COMM_endpoint_in_callback(void);
@@ -36,7 +33,6 @@ static void _USBD_CDC_DATA_endpoint_out_callback(void);
 static void _USBD_CDC_DATA_endpoint_in_callback(void);
 
 static USB_status_t _USBD_CDC_COMM_request_callback(USB_request_t* request, USB_data_t* data_out, USB_data_t* data_in);
-static USB_status_t _USBD_CDC_DATA_request_callback(USB_request_t* request, USB_data_t* data_out, USB_data_t* data_in);
 
 /*** USBD CDC local structures ***/
 
@@ -55,10 +51,9 @@ typedef enum {
 
 /*******************************************************************/
 typedef struct {
+    USBD_CDC_callbacks_t* callbacks;
     uint8_t cs_descriptor[USBD_CDC_CS_DESCRIPTOR_BUFFER_SIZE_BYTES];
     uint8_t cs_descriptor_length;
-    USB_CDC_abstract_state_t abstract_state;
-    uint16_t country_setting;
     USB_CDC_line_coding_t line_coding;
 } USBD_CDC_context_t;
 
@@ -230,8 +225,6 @@ static const uint8_t* const USB_CDC_DESCRIPTOR_LIST[] = {
 static USBD_CDC_context_t usbd_cdc_ctx = {
     .cs_descriptor = { [0 ... (USBD_CDC_CS_DESCRIPTOR_BUFFER_SIZE_BYTES - 1)] = 0x00 },
     .cs_descriptor_length = 0,
-    .abstract_state.value = USBD_CDC_ABSTRACT_STATE_DEFAULT,
-    .country_setting = USBD_CDC_COUNTRY_SETTING_DEFAULT,
     .line_coding.dwDTERate = 0,
     .line_coding.bCharFormat = 0,
     .line_coding.bParityType = 0,
@@ -255,7 +248,7 @@ const USB_interface_t USBD_CDC_DATA_INTERFACE = {
     .number_of_endpoints = USBD_CDC_DATA_ENDPOINT_INDEX_LAST,
     .cs_descriptor = NULL,
     .cs_descriptor_length = NULL,
-    .request_callback = &_USBD_CDC_DATA_request_callback
+    .request_callback = NULL
 };
 
 /*** USB CDC local functions ***/
@@ -264,101 +257,45 @@ const USB_interface_t USBD_CDC_DATA_INTERFACE = {
 static USB_status_t _USBD_CDC_COMM_request_callback(USB_request_t* request, USB_data_t* data_out, USB_data_t* data_in) {
     // Local variables.
     USB_status_t status = USB_SUCCESS;
-    USB_CDC_abstract_state_t* abstract_state_ptr = NULL;
-    uint16_t* country_setting_ptr = NULL;
     USB_CDC_line_coding_t* line_coding_ptr = NULL;
+    USB_CDC_serial_port_configuration_t serial_port_config;
     // Check request.
     switch (request->bRequest) {
-    case USB_CDC_REQUEST_SEND_ENCAPSULATED_COMMAND:
-        break;
-    case USB_CDC_REQUEST_GET_ENCAPSULATED_RESPONSE:
-        break;
-    case USB_CDC_REQUEST_SET_COMM_FEATURE:
-        // Check feature.
-        switch (request->wValue) {
-        case USB_CDC_FEATURE_ABSTRACT_STATE:
-            // Cast data and update local state.
-            abstract_state_ptr = (USB_CDC_abstract_state_t*) (data_out->data);
-            usbd_cdc_ctx.abstract_state.value = (abstract_state_ptr->value);
-            break;
-        case USB_CDC_FEATURE_COUNTRY_SETTING:
-            // Cast data and update local setting.
-            country_setting_ptr = (uint16_t*) (data_out->data);
-            usbd_cdc_ctx.country_setting = (*country_setting_ptr);
-            break;
-        default:
-            status = USB_ERROR_CDC_FEATURE;
-            goto errors;
-        }
-        break;
-    case USB_CDC_REQUEST_GET_COMM_FEATURE:
-        // Check feature.
-        switch (request->wValue) {
-        case USB_CDC_FEATURE_ABSTRACT_STATE:
-            // Update IN data.
-            data_in->data = (uint8_t*) &(usbd_cdc_ctx.abstract_state.value);
-            data_in->size_bytes = sizeof(USB_CDC_abstract_state_t);
-            break;
-        case USB_CDC_FEATURE_COUNTRY_SETTING:
-            // Update IN data.
-            data_in->data = (uint8_t*) &(usbd_cdc_ctx.country_setting);
-            data_in->size_bytes = sizeof(uint16_t);
-            break;
-        default:
-            status = USB_ERROR_CDC_FEATURE;
-            goto errors;
-        }
-        break;
-    case USB_CDC_REQUEST_CLEAR_COMM_FEATURE:
-        // Check feature.
-        switch (request->wValue) {
-        case USB_CDC_FEATURE_ABSTRACT_STATE:
-            // Set local state to default
-            usbd_cdc_ctx.abstract_state.value = USBD_CDC_ABSTRACT_STATE_DEFAULT;
-            break;
-        case USB_CDC_FEATURE_COUNTRY_SETTING:
-            /// Set local setting to default
-            usbd_cdc_ctx.country_setting = USBD_CDC_COUNTRY_SETTING_DEFAULT;
-            break;
-        default:
-            status = USB_ERROR_CDC_FEATURE;
-            goto errors;
-        }
-        break;
     case USB_CDC_REQUEST_SET_LINE_CODING:
         // Cast data.
         line_coding_ptr = (USB_CDC_line_coding_t*) (data_out->data);
-        // Update local coding.
-        usbd_cdc_ctx.line_coding.dwDTERate = (line_coding_ptr->dwDTERate);
-        usbd_cdc_ctx.line_coding.bCharFormat = (line_coding_ptr->bCharFormat);
-        usbd_cdc_ctx.line_coding.bParityType = (line_coding_ptr->bParityType);
-        usbd_cdc_ctx.line_coding.bDataBits = (line_coding_ptr->bDataBits);
+        // Convert structure.
+        serial_port_config.baud_rate = (line_coding_ptr->dwDTERate);
+        serial_port_config.stop_bits = (line_coding_ptr->bCharFormat);
+        serial_port_config.data_bits = (line_coding_ptr->bDataBits);
+        serial_port_config.parity = (line_coding_ptr->bParityType);
+        // Call request callback.
+        status = usbd_cdc_ctx.callbacks->set_serial_port_configuration_request(&serial_port_config);
+        if (status != USB_SUCCESS) goto errors;
         break;
     case USB_CDC_REQUEST_GET_LINE_CODING:
+        // Read current configuration.
+        status = usbd_cdc_ctx.callbacks->get_serial_port_configuration_request(&serial_port_config);
+        if (status != USB_SUCCESS) goto errors;
+        // Convert structure.
+        usbd_cdc_ctx.line_coding.dwDTERate = serial_port_config.baud_rate;
+        usbd_cdc_ctx.line_coding.bCharFormat = serial_port_config.stop_bits;
+        usbd_cdc_ctx.line_coding.bParityType = serial_port_config.parity;
+        usbd_cdc_ctx.line_coding.bDataBits = serial_port_config.data_bits;
         // Update IN data.
         data_in->data = (uint8_t*) &(usbd_cdc_ctx.line_coding);
         data_in->size_bytes = sizeof(USB_CDC_line_coding_t);
         break;
-    case USB_CDC_REQUEST_SET_CONTROL_LINE_STATE:
-        break;
     case USB_CDC_REQUEST_SEND_BREAK:
+        // Call request callback.
+        status = usbd_cdc_ctx.callbacks->send_break();
+        if (status != USB_SUCCESS) goto errors;
         break;
     default:
         status = USB_ERROR_CLASS_REQUEST;
         goto errors;
     }
 errors:
-    return status;
-}
-
-/*******************************************************************/
-static USB_status_t _USBD_CDC_DATA_request_callback(USB_request_t* request, USB_data_t* data_out, USB_data_t* data_in) {
-    // Local variables.
-    USB_status_t status = USB_ERROR_CLASS_REQUEST;
-    // Request should not be sent on the DATA interface.
-    UNUSED(request);
-    UNUSED(data_out);
-    UNUSED(data_in);
     return status;
 }
 
@@ -380,13 +317,20 @@ static void _USBD_CDC_DATA_endpoint_in_callback(void) {
 /*** USBD CDC functions ***/
 
 /*******************************************************************/
-USB_status_t USBD_CDC_init(void) {
+USB_status_t USBD_CDC_init(USBD_CDC_callbacks_t* cdc_callbacks) {
     // Local variables.
     USB_status_t status = USB_SUCCESS;
     const uint8_t* descriptor_ptr = NULL;
     uint32_t descriptor_idx = 0;
     uint32_t full_idx = 0;
     uint32_t idx = 0;
+    // Check parameter.
+    if (cdc_callbacks == NULL) {
+        status = USB_ERROR_NULL_PARAMETER;
+        goto errors;
+    }
+    // Register callbacks.
+    usbd_cdc_ctx.callbacks = cdc_callbacks;
     // Build class specific descriptor.
     for (descriptor_idx = 0; descriptor_idx < (sizeof(USB_CDC_DESCRIPTOR_LIST) / (sizeof(uint8_t*))); descriptor_idx++) {
         // Update pointer.
@@ -422,16 +366,17 @@ errors:
 USB_status_t USBD_CDC_de_init(void) {
     // Local variables.
     USB_status_t status = USB_SUCCESS;
-    // Registers endpoints.
     uint8_t idx = 0;
+    // Reset context.
+    usbd_cdc_ctx.callbacks = NULL;
     // Endpoints loop.
     for (idx = 0; idx < (USBD_CDC_COMM_INTERFACE.number_of_endpoints); idx++) {
-        // Register endpoint.
+        // Unregister endpoint.
         status = USBD_HW_unregister_endpoint((USB_physical_endpoint_t*) ((USBD_CDC_COMM_INTERFACE.endpoint_list)[idx]->physical_endpoint));
         if (status != USB_SUCCESS) goto errors;
     }
     for (idx = 0; idx < (USBD_CDC_DATA_INTERFACE.number_of_endpoints); idx++) {
-        // Register endpoint.
+        // Unregister endpoint.
         status = USBD_HW_unregister_endpoint((USB_physical_endpoint_t*) ((USBD_CDC_DATA_INTERFACE.endpoint_list)[idx]->physical_endpoint));
         if (status != USB_SUCCESS) goto errors;
     }

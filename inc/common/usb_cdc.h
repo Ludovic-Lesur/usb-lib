@@ -8,6 +8,9 @@
 #ifndef __USB_CDC_H__
 #define __USB_CDC_H__
 
+#include "common/usb_descriptor.h"
+#include "types.h"
+
 /*** USB CDC macros ***/
 
 #define USB_CDC_DESCRIPTOR_VERSION  0x0120
@@ -222,19 +225,6 @@ typedef struct {
     uint8_t bControlInterface;
     uint8_t bSubordinateInterface;
 } __attribute__((packed)) USB_CDC_union_descriptor_t;
-
-/*!******************************************************************
- * \struct USB_CDC_abstract_state
- * \brief USB CDC abstract status format.
- *******************************************************************/
-typedef union {
-    struct {
-        uint8_t idle_setting :1;
-        uint8_t data_multiplexed_state :1;
-        uint16_t reserved_15_2 :14;
-    } __attribute__((packed));
-    uint16_t value;
-} USB_CDC_abstract_state_t;
 
 /*!******************************************************************
  * \struct USB_CDC_line_coding_t

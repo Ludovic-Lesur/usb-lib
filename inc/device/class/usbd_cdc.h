@@ -11,12 +11,78 @@
 #ifndef USB_LIB_DISABLE_FLAGS_FILE
 #include "usb_lib_flags.h"
 #endif
+#include "common/usb_cdc.h"
 #include "common/usb_interface.h"
 #include "common/usb_types.h"
 #include "error.h"
 #include "types.h"
 
 #if (!(defined USB_LIB_DISABLE) && (defined USBD_CDC))
+
+/*** USB CDC global structures ***/
+
+/*!******************************************************************
+ * \enum USBD_CDC_stop_bits_t
+ * \brief USB CDC stop bits configurations list.
+ *******************************************************************/
+typedef enum {
+    USBD_CDC_STOP_BITS_1 = 0,
+    USBD_CDC_STOP_BITS_1_5,
+    USBD_CDC_STOP_BITS_2,
+    USBD_CDC_STOP_BITS_LAST
+} USBD_CDC_stop_bits_t;
+
+/*!******************************************************************
+ * \enum USBD_CDC_parity_t
+ * \brief USB CDC parity modes list.
+ *******************************************************************/
+typedef enum {
+    USBD_CDC_PARITY_NONE = 0,
+    USBD_CDC_PARITY_ODD,
+    USBD_CDC_PARITY_EVEN,
+    USBD_CDC_PARITY_MARK,
+    USBD_CDC_PARITY_SPACE,
+    USBD_CDC_PARITY_LAST
+} USBD_CDC_parity_t;
+
+/*!******************************************************************
+ * \struct USB_CDC_serial_port_configuration_t
+ * \brief USB CDC serial port parameters structure.
+ *******************************************************************/
+typedef struct {
+    uint32_t baud_rate;
+    uint8_t data_bits;
+    USBD_CDC_stop_bits_t stop_bits;
+    USBD_CDC_parity_t parity;
+} USB_CDC_serial_port_configuration_t;
+
+/*!******************************************************************
+ * \fn USB_CDC_set_serial_port_configuration_cb_t
+ * \brief USBD CDC set serial port configuration request callback.
+ *******************************************************************/
+typedef USB_status_t (*USB_CDC_set_serial_port_configuration_cb_t)(USB_CDC_serial_port_configuration_t* configuration);
+
+/*!******************************************************************
+ * \fn USB_CDC_get_serial_port_configuration_cb_t
+ * \brief USBD CDC get serial port configuration request callback.
+ *******************************************************************/
+typedef USB_status_t (*USB_CDC_get_serial_port_configuration_cb_t)(USB_CDC_serial_port_configuration_t* configuration);
+
+/*!******************************************************************
+ * \fn USB_CDC_send_break
+ * \brief USBD CDC send break request callback.
+ *******************************************************************/
+typedef USB_status_t (*USB_CDC_send_break)(void);
+
+/*!******************************************************************
+ * \struct USBD_CDC_callbacks_t
+ * \brief USBD CDC driver callbacks.
+ *******************************************************************/
+typedef struct {
+    USB_CDC_set_serial_port_configuration_cb_t set_serial_port_configuration_request;
+    USB_CDC_get_serial_port_configuration_cb_t get_serial_port_configuration_request;
+    USB_CDC_send_break send_break;
+} USBD_CDC_callbacks_t;
 
 /*** USB CDC global variables ***/
 
@@ -26,13 +92,13 @@ extern const USB_interface_t USBD_CDC_DATA_INTERFACE;
 /*** USB CDC functions ***/
 
 /*!******************************************************************
- * \fn USB_status_t USBD_CDC_init(void)
+ * \fn USB_status_t USBD_CDC_init(USBD_CDC_callbacks_t* cdc_callbacks)
  * \brief Init USB device CDC class driver.
- * \param[in]   none
+ * \param[in]   cdc_callbacks: Pointer to the CDC device class callbacks.
  * \param[out]  none
  * \retval      Function execution status.
  *******************************************************************/
-USB_status_t USBD_CDC_init(void);
+USB_status_t USBD_CDC_init(USBD_CDC_callbacks_t* cdc_callbacks);
 
 /*!******************************************************************
  * \fn USB_status_t USBD_CDC_de_init(void)
