@@ -55,6 +55,8 @@ typedef struct {
     uint8_t cs_descriptor[USBD_CDC_CS_DESCRIPTOR_BUFFER_SIZE_BYTES];
     uint8_t cs_descriptor_length;
     USB_CDC_line_coding_t line_coding;
+    USB_data_t data_out;
+    USB_data_t data_in;
 } USBD_CDC_context_t;
 
 /*** USB CDC local global variables ***/
@@ -259,6 +261,8 @@ static USB_status_t _USBD_CDC_COMM_request_callback(USB_request_t* request, USB_
     USB_status_t status = USB_SUCCESS;
     USB_CDC_line_coding_t* line_coding_ptr = NULL;
     USB_CDC_serial_port_configuration_t serial_port_config;
+    uint8_t rts = 0;
+    uint8_t dtr = 0;
     // Check request.
     switch (request->bRequest) {
     case USB_CDC_REQUEST_SET_LINE_CODING:
@@ -286,6 +290,14 @@ static USB_status_t _USBD_CDC_COMM_request_callback(USB_request_t* request, USB_
         data_in->data = (uint8_t*) &(usbd_cdc_ctx.line_coding);
         data_in->size_bytes = sizeof(USB_CDC_line_coding_t);
         break;
+    case USB_CDC_REQUEST_SET_CONTROL_LINE_STATE:
+        // Parse fields.
+        rts = (((request->wValue) >> 1) & 0x0001);
+        dtr = (((request->wValue) >> 0) & 0x0001);
+        // Call request callback.
+        usbd_cdc_ctx.callbacks->set_serial_port_state(rts, dtr);
+        if (status != USB_SUCCESS) goto errors;
+        break;
     case USB_CDC_REQUEST_SEND_BREAK:
         // Call request callback.
         status = usbd_cdc_ctx.callbacks->send_break();
@@ -306,12 +318,31 @@ static void _USBD_CDC_COMM_endpoint_in_callback(void) {
 
 /*******************************************************************/
 static void _USBD_CDC_DATA_endpoint_out_callback(void) {
-    // TODO
+    // Local variables.
+    USB_status_t status = USB_SUCCESS;
+    uint32_t idx = 0;
+    // Read input data.
+    status = USBD_HW_read_data((USB_physical_endpoint_t*) &USBD_CDC_DATA_EP_PHY_OUT, &(usbd_cdc_ctx.data_out));
+    if (status != USB_SUCCESS) goto errors;
+    // Bytes loop.
+    for (idx = 0; idx < usbd_cdc_ctx.data_out.size_bytes; idx++) {
+        // Call RX completion callback.
+        status = usbd_cdc_ctx.callbacks->rx_completion(usbd_cdc_ctx.data_out.data[idx]);
+        if (status != USB_SUCCESS) goto errors;
+    }
+errors:
+    return;
 }
 
 /*******************************************************************/
 static void _USBD_CDC_DATA_endpoint_in_callback(void) {
-    // TODO
+    // Local variables.
+    USB_status_t status = USB_SUCCESS;
+    // Call TX completion callback.
+    status = usbd_cdc_ctx.callbacks->tx_completion();
+    if (status != USB_SUCCESS) goto errors;
+errors:
+    return;
 }
 
 /*** USBD CDC functions ***/

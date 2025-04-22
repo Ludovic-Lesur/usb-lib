@@ -471,8 +471,6 @@ static void _USBD_CONTROL_setup_callback(USB_request_operation_t* setup_request_
     if (status != USB_SUCCESS) goto errors;
     // Update request operation.
     _USBD_CONTROL_update_request_operation();
-    // Update output parameter.
-    (*setup_request_type) = usbd_control_ctx.request_operation;
     // Check request type.
     switch (usbd_control_ctx.request_operation) {
     case USB_REQUEST_OPERATION_READ:
@@ -488,6 +486,8 @@ static void _USBD_CONTROL_setup_callback(USB_request_operation_t* setup_request_
     default:
         break;
     }
+    // Update output parameter.
+    (*setup_request_type) = usbd_control_ctx.request_operation;
 errors:
     return;
 }

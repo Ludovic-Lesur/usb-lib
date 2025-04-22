@@ -69,10 +69,28 @@ typedef USB_status_t (*USB_CDC_set_serial_port_configuration_cb_t)(USB_CDC_seria
 typedef USB_status_t (*USB_CDC_get_serial_port_configuration_cb_t)(USB_CDC_serial_port_configuration_t* configuration);
 
 /*!******************************************************************
- * \fn USB_CDC_send_break
+ * \fn USB_CDC_set_serial_port_state_cb_t
+ * \brief USBD CDC send serial port state callback.
+ *******************************************************************/
+typedef USB_status_t (*USB_CDC_set_serial_port_state_cb_t)(uint8_t rts, uint8_t dtr);
+
+/*!******************************************************************
+ * \fn USB_CDC_send_break_cb_t
  * \brief USBD CDC send break request callback.
  *******************************************************************/
-typedef USB_status_t (*USB_CDC_send_break)(void);
+typedef USB_status_t (*USB_CDC_send_break_cb_t)(void);
+
+/*!******************************************************************
+ * \fn USB_CDC_rx_completion_irq_cb_t
+ * \brief USBD CDC data reception completion callback.
+ *******************************************************************/
+typedef USB_status_t (*USB_CDC_rx_completion_irq_cb_t)(uint8_t data);
+
+/*!******************************************************************
+ * \fn USB_CDC_tx_completion_irq_cb_t
+ * \brief USBD CDC data transmission completion callback.
+ *******************************************************************/
+typedef USB_status_t (*USB_CDC_tx_completion_irq_cb_t)(void);
 
 /*!******************************************************************
  * \struct USBD_CDC_callbacks_t
@@ -81,7 +99,10 @@ typedef USB_status_t (*USB_CDC_send_break)(void);
 typedef struct {
     USB_CDC_set_serial_port_configuration_cb_t set_serial_port_configuration_request;
     USB_CDC_get_serial_port_configuration_cb_t get_serial_port_configuration_request;
-    USB_CDC_send_break send_break;
+    USB_CDC_set_serial_port_state_cb_t set_serial_port_state;
+    USB_CDC_send_break_cb_t send_break;
+    USB_CDC_rx_completion_irq_cb_t rx_completion;
+    USB_CDC_tx_completion_irq_cb_t tx_completion;
 } USBD_CDC_callbacks_t;
 
 /*** USB CDC global variables ***/
