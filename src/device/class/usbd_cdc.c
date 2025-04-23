@@ -415,4 +415,23 @@ errors:
     return status;
 }
 
+/*******************************************************************/
+USB_status_t USBD_CDC_write(uint8_t* data, uint32_t data_size_bytes) {
+    // Local variables.
+    USB_status_t status = USB_SUCCESS;
+    // Check size.
+    if (data_size_bytes > USBD_CDC_DATA_EP_PHY_IN.max_packet_size_bytes) {
+        status = USB_ERROR_CDC_DATA_SIZE;
+        goto errors;
+    }
+    // Build IN data structure.
+    usbd_cdc_ctx.data_in.data = data;
+    usbd_cdc_ctx.data_in.size_bytes = data_size_bytes;
+    // Write data.
+    status = USBD_HW_write_data((USB_physical_endpoint_t*) &USBD_CDC_DATA_EP_PHY_IN, &(usbd_cdc_ctx.data_in));
+    if (status != USB_SUCCESS) goto errors;
+errors:
+    return status;
+}
+
 #endif /* USB_LIB_DISABLE */

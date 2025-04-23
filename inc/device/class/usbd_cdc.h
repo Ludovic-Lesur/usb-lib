@@ -130,6 +130,16 @@ USB_status_t USBD_CDC_init(USBD_CDC_callbacks_t* cdc_callbacks);
  *******************************************************************/
 USB_status_t USBD_CDC_de_init(void);
 
+/*!******************************************************************
+ * \fn USB_status_t USBD_CDC_write(uint8_t* data, uint32_t data_size_bytes)
+ * \brief Write data over CDC interface.
+ * \param[in]   data: Byte array to send.
+ * \param[in]   data_size_bytes: Number of bytes to send.
+ * \param[out]  none
+ * \retval      Function execution status.
+ *******************************************************************/
+USB_status_t USBD_CDC_write(uint8_t* data, uint32_t data_size_bytes);
+
 /*******************************************************************/
 #define USBD_CDC_exit_error(base) { ERROR_check_exit(usbd_cdc_status, USBD_CDC_SUCCESS, base) }
 
