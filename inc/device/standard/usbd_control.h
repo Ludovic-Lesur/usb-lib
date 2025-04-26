@@ -66,4 +66,4 @@ USB_status_t USBD_CONTROL_de_init(void);
 
 #endif /* USB_LIB_DISABLE */
 
-#endif /* __USB_H__ */
+#endif /* __USBD_CONTROL_H__ */

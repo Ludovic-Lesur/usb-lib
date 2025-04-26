@@ -26,21 +26,13 @@
 #define USBD_CDC_CS_DESCRIPTOR_BUFFER_SIZE_BYTES    256
 #define USBD_CDC_CS_DESCRIPTOR_LENGTH_INDEX         0
 
-/*** USBD CDC local functions declaration ***/
-
-static void _USBD_CDC_COMM_endpoint_in_callback(void);
-static void _USBD_CDC_DATA_endpoint_out_callback(void);
-static void _USBD_CDC_DATA_endpoint_in_callback(void);
-
-static USB_status_t _USBD_CDC_COMM_request_callback(USB_request_t* request, USB_data_t* data_out, USB_data_t* data_in);
-
 /*** USBD CDC local structures ***/
 
 /*******************************************************************/
 typedef enum {
     USBD_CDC_COMM_ENDPOINT_INDEX_IN = 0,
     USBD_CDC_COMM_ENDPOINT_INDEX_LAST
-} USBD_CDC_com_endpoint_index_t;
+} USBD_CDC_comm_endpoint_index_t;
 
 /*******************************************************************/
 typedef enum {
@@ -58,6 +50,14 @@ typedef struct {
     USB_data_t data_out;
     USB_data_t data_in;
 } USBD_CDC_context_t;
+
+/*** USBD CDC local functions declaration ***/
+
+static void _USBD_CDC_COMM_endpoint_in_callback(void);
+static void _USBD_CDC_DATA_endpoint_out_callback(void);
+static void _USBD_CDC_DATA_endpoint_in_callback(void);
+
+static USB_status_t _USBD_CDC_COMM_request_callback(USB_request_t* request, USB_data_t* data_out, USB_data_t* data_in);
 
 /*** USB CDC local global variables ***/
 
@@ -139,28 +139,28 @@ static const USB_endpoint_descriptor_t USBD_CDC_DATA_EP_PHY_IN_DESCRIPTOR = {
     .bInterval = 1
 };
 
-static const USB_endpoint_t USBD_CDC_EP_COMM_IN = {
+static const USB_endpoint_t USBD_CDC_COMM_EP_IN = {
     .physical_endpoint = &USBD_CDC_COMM_EP_PHY_IN,
     .descriptor = &USBD_CDC_COMM_EP_PHY_IN_DESCRIPTOR
 };
 
-static const USB_endpoint_t USBD_CDC_EP_DATA_OUT = {
+static const USB_endpoint_t USBD_CDC_DATA_EP_OUT = {
     .physical_endpoint = &USBD_CDC_DATA_EP_PHY_OUT,
     .descriptor = &USBD_CDC_DATA_EP_PHY_OUT_DESCRIPTOR
 };
 
-static const USB_endpoint_t USBD_CDC_EP_DATA_IN = {
+static const USB_endpoint_t USBD_CDC_DATA_EP_IN = {
     .physical_endpoint = &USBD_CDC_DATA_EP_PHY_IN,
     .descriptor = &USBD_CDC_DATA_EP_PHY_IN_DESCRIPTOR
 };
 
 static const USB_endpoint_t* const USBD_CDC_COMM_INTERFACE_EP_LIST[USBD_CDC_COMM_ENDPOINT_INDEX_LAST] = {
-    &USBD_CDC_EP_COMM_IN
+    &USBD_CDC_COMM_EP_IN
 };
 
 static const USB_endpoint_t* const USBD_CDC_DATA_INTERFACE_EP_LIST[USBD_CDC_DATA_ENDPOINT_INDEX_LAST] = {
-    &USBD_CDC_EP_DATA_OUT,
-    &USBD_CDC_EP_DATA_IN
+    &USBD_CDC_DATA_EP_OUT,
+    &USBD_CDC_DATA_EP_IN
 };
 
 static const USB_interface_descriptor_t USB_CDC_COMM_INTERFACE_DESCRIPTOR = {
@@ -253,7 +253,7 @@ const USB_interface_t USBD_CDC_DATA_INTERFACE = {
     .request_callback = NULL
 };
 
-/*** USB CDC local functions ***/
+/*** USBD CDC local functions ***/
 
 /*******************************************************************/
 static USB_status_t _USBD_CDC_COMM_request_callback(USB_request_t* request, USB_data_t* data_out, USB_data_t* data_in) {

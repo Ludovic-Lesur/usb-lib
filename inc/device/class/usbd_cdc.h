@@ -19,7 +19,7 @@
 
 #if (!(defined USB_LIB_DISABLE) && (defined USBD_CDC))
 
-/*** USB CDC global structures ***/
+/*** USBD CDC global structures ***/
 
 /*!******************************************************************
  * \enum USBD_CDC_stop_bits_t
@@ -105,12 +105,12 @@ typedef struct {
     USB_CDC_tx_completion_irq_cb_t tx_completion;
 } USBD_CDC_callbacks_t;
 
-/*** USB CDC global variables ***/
+/*** USBD CDC global variables ***/
 
 extern const USB_interface_t USBD_CDC_COMM_INTERFACE;
 extern const USB_interface_t USBD_CDC_DATA_INTERFACE;
 
-/*** USB CDC functions ***/
+/*** USBD CDC functions ***/
 
 /*!******************************************************************
  * \fn USB_status_t USBD_CDC_init(USBD_CDC_callbacks_t* cdc_callbacks)
@@ -139,15 +139,6 @@ USB_status_t USBD_CDC_de_init(void);
  * \retval      Function execution status.
  *******************************************************************/
 USB_status_t USBD_CDC_write(uint8_t* data, uint32_t data_size_bytes);
-
-/*******************************************************************/
-#define USBD_CDC_exit_error(base) { ERROR_check_exit(usbd_cdc_status, USBD_CDC_SUCCESS, base) }
-
-/*******************************************************************/
-#define USBD_CDC_stack_error(base) { ERROR_check_stack(usbd_cdc_status, USBD_CDC_SUCCESS, base) }
-
-/*******************************************************************/
-#define USBD_CDC_stack_exit_error(base, code) { ERROR_check_stack_exit(usbd_cdc_status, USBD_CDC_SUCCESS, base, code) }
 
 #endif /* USB_LIB_DISABLE */
 

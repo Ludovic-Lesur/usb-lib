@@ -6,6 +6,7 @@ This repository contains a cross-platform USB stack for embedded projects.
 |:---:|:---:|:---:|:---:|
 | **Control pipe** | | :x: | :hammer: |
 | **CDC** | **ACM** | :x: | :hammer: |
+| **UAC** | **AC** / **AS** | :x: | :hammer: |
 
 # Dependencies
 
@@ -29,6 +30,7 @@ Here is the versions compatibility table:
 | `USB_LIB_DISABLE` | `defined` / `undefined` | Disable the USB library. |
 | `USB_LIB_HW_INTERFACE_ERROR_BASE_LAST` | `defined` / `undefined` | Last error base of the low level USB driver. |
 | `USBD_CDC` | `defined` / `undefined` | Enable the CDC device class if defined. |
+| `USBD_UAC` | `defined` / `undefined` | Enable the UAC device class if defined. |
 | `USBD_X_INTERFACE_INDEX` | `<value>` | Index of the device interface X. |
 | `USBD_X_INTERFACE_STRING_DESCRIPTOR_INDEX` | `<value>` | Index of the string descriptor of the device interface X. |
 | `USBD_X_ENDPOINT_NUMBER` | `<value>` | Endpoint number assigned to the device interface X. |
