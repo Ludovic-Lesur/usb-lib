@@ -31,9 +31,7 @@ typedef struct {
 
 /*** USBD UAC global variables ***/
 
-extern const USB_interface_t USBD_UAC_CONTROL_INTERFACE;
-extern const USB_interface_t USBD_UAC_STREAM_PLAY_INTERFACE;
-extern const USB_interface_t USBD_UAC_STREAM_RECORD_INTERFACE;
+extern const USB_interface_association_t USBD_UAC_INTERFACE_ASSOCIATION;
 
 /*** USBD UAC functions ***/
 

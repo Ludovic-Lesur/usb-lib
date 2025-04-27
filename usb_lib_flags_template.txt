@@ -10,23 +10,47 @@
 
 /*** USB library compilation flags ***/
 
-#define USB_LIB_HW_INTERFACE_ERROR_BASE_LAST                0
+#define USB_LIB_HW_INTERFACE_ERROR_BASE_LAST                        0
 
-#define USBD_CONTROL_INTERFACE_INDEX                        0
-#define USBD_CONTROL_INTERFACE_STRING_DESCRIPTOR_INDEX      0
+#define USBD_CONTROL_INTERFACE_INDEX                                0
+#define USBD_CONTROL_INTERFACE_STRING_DESCRIPTOR_INDEX              0
 
 #define USBD_CDC
+#define USBD_UAC
 
 #ifdef USBD_CDC
-#define USBD_CDC_COMM_INTERFACE_INDEX                       1
-#define USBD_CDC_COMM_INTERFACE_STRING_DESCRIPTOR_INDEX     1
-#define USBD_CDC_COMM_ENDPOINT_NUMBER                       1
-#define USBD_CDC_COMM_PACKET_SIZE_BYTES                     16
 
-#define USBD_CDC_DATA_INTERFACE_INDEX                       2
-#define USBD_CDC_DATA_INTERFACE_STRING_DESCRIPTOR_INDEX     2
-#define USBD_CDC_DATA_ENDPOINT_NUMBER                       2
-#define USBD_CDC_DATA_PACKET_SIZE_BYTES                     1024
-#endif
+#define USBD_CDC_COMM_INTERFACE_INDEX                               1
+#define USBD_CDC_COMM_INTERFACE_STRING_DESCRIPTOR_INDEX             1
+#define USBD_CDC_COMM_ENDPOINT_NUMBER                               1
+#define USBD_CDC_COMM_PACKET_SIZE_BYTES                             16
+
+#define USBD_CDC_DATA_INTERFACE_INDEX                               2
+#define USBD_CDC_DATA_INTERFACE_STRING_DESCRIPTOR_INDEX             2
+#define USBD_CDC_DATA_ENDPOINT_NUMBER                               2
+#define USBD_CDC_DATA_PACKET_SIZE_BYTES                             512
+
+#endif /*  USBD_CDC */
+
+#ifdef USBD_UAC
+
+#define USBD_UAC_INTERFACE_ASSOCIATION_STRING_DESCRIPTOR_INDEX      3
+
+#define USBD_UAC_CONTROL_INTERFACE_INDEX                            3
+#define USBD_UAC_CONTROL_INTERFACE_STRING_DESCRIPTOR_INDEX          4
+#define USBD_UAC_CONTROL_ENDPOINT_NUMBER                            3
+#define USBD_UAC_CONTROL_PACKET_SIZE_BYTES                          64
+
+#define USBD_UAC_STREAM_PLAY_INTERFACE_INDEX                        4
+#define USBD_UAC_STREAM_PLAY_INTERFACE_STRING_DESCRIPTOR_INDEX      5
+#define USBD_UAC_STREAM_PLAY_ENDPOINT_NUMBER                        4
+#define USBD_UAC_STREAM_PLAY_PACKET_SIZE_BYTES                      512
+
+#define USBD_UAC_STREAM_RECORD_INTERFACE_INDEX                      5
+#define USBD_UAC_STREAM_RECORD_INTERFACE_STRING_DESCRIPTOR_INDEX    6
+#define USBD_UAC_STREAM_RECORD_ENDPOINT_NUMBER                      4
+#define USBD_UAC_STREAM_RECORD_PACKET_SIZE_BYTES                    512
+
+#endif /* USBD_UAC */
 
 #endif /* __USB_LIB_FLAGS_H__ */

@@ -50,8 +50,10 @@ typedef struct {
 typedef struct {
     const USB_configuration_descriptor_t* descriptor;
     const USB_interface_t** interface_list;
-    uint8_t number_of_interfaces;
-    uint16_t max_power_ma;
+    const uint8_t number_of_interfaces;
+    const USB_interface_association_t** interface_association_list;
+    const uint8_t number_of_interfaces_associations;
+    const uint16_t max_power_ma;
 } USB_configuration_t;
 
 #endif /* __USB_CONFIGURATION_H__ */

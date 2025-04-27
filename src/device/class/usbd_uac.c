@@ -47,6 +47,14 @@ typedef enum {
 } USBD_UAC_stream_record_endpoint_index_t;
 
 /*******************************************************************/
+typedef enum {
+    USBD_UAC_INTERFACE_INDEX_CONTROL = 0,
+    USBD_UAC_INTERFACE_INDEX_STREAM_PLAY,
+    USBD_UAC_INTERFACE_INDEX_STREAM_RECORD,
+    USBD_UAC_INTERFACE_INDEX_LAST
+} USBD_UAC_interface_index_t;
+
+/*******************************************************************/
 typedef struct {
     USBD_UAC_callbacks_t* callbacks;
     uint8_t cs_descriptor[USBD_UAC_CS_DESCRIPTOR_BUFFER_SIZE_BYTES];
@@ -177,8 +185,8 @@ static const USB_interface_descriptor_t USB_UAC_CONTROL_INTERFACE_DESCRIPTOR = {
     .bAlternateSetting = 0,
     .bNumEndpoints = USBD_UAC_CONTROL_ENDPOINT_INDEX_LAST,
     .bInterfaceClass = USB_CLASS_CODE_AUDIO,
-    .bInterfaceSubClass = 0,
-    .bInterfaceProtocol = 0,
+    .bInterfaceSubClass = USB_UAC_SUBCLASS_CODE_AUDIO_CONTROL,
+    .bInterfaceProtocol = USB_UAC_PROTOCOL_CODE_IP_VERSION_02_00,
     .iInterface = USBD_UAC_CONTROL_INTERFACE_STRING_DESCRIPTOR_INDEX
 };
 
@@ -189,8 +197,8 @@ static const USB_interface_descriptor_t USB_UAC_STREAM_PLAY_INTERFACE_DESCRIPTOR
     .bAlternateSetting = 0,
     .bNumEndpoints = USBD_UAC_STREAM_PLAY_ENDPOINT_INDEX_LAST,
     .bInterfaceClass = USB_CLASS_CODE_AUDIO,
-    .bInterfaceSubClass = 0,
-    .bInterfaceProtocol = 0,
+    .bInterfaceSubClass = USB_UAC_SUBCLASS_CODE_AUDIO_STREAMING,
+    .bInterfaceProtocol = USB_UAC_PROTOCOL_CODE_IP_VERSION_02_00,
     .iInterface = USBD_UAC_STREAM_PLAY_INTERFACE_STRING_DESCRIPTOR_INDEX
 };
 
@@ -201,8 +209,8 @@ static const USB_interface_descriptor_t USB_UAC_STREAM_RECORD_INTERFACE_DESCRIPT
     .bAlternateSetting = 0,
     .bNumEndpoints = USBD_UAC_STREAM_RECORD_ENDPOINT_INDEX_LAST,
     .bInterfaceClass = USB_CLASS_CODE_AUDIO,
-    .bInterfaceSubClass = 0,
-    .bInterfaceProtocol = 0,
+    .bInterfaceSubClass = USB_UAC_SUBCLASS_CODE_AUDIO_STREAMING,
+    .bInterfaceProtocol = USB_UAC_PROTOCOL_CODE_IP_VERSION_02_00,
     .iInterface = USBD_UAC_STREAM_RECORD_INTERFACE_STRING_DESCRIPTOR_INDEX
 };
 
@@ -211,9 +219,7 @@ static USBD_UAC_context_t usbd_uac_ctx = {
     .cs_descriptor_length = 0,
 };
 
-/*** USB UAC global variables ***/
-
-const USB_interface_t USBD_UAC_CONTROL_INTERFACE = {
+static const USB_interface_t USBD_UAC_CONTROL_INTERFACE = {
     .descriptor = &USB_UAC_CONTROL_INTERFACE_DESCRIPTOR,
     .endpoint_list = (const USB_endpoint_t**) &USBD_UAC_CONTROL_INTERFACE_EP_LIST,
     .number_of_endpoints = USBD_UAC_CONTROL_ENDPOINT_INDEX_LAST,
@@ -222,7 +228,7 @@ const USB_interface_t USBD_UAC_CONTROL_INTERFACE = {
     .request_callback = &_USBD_UAC_CONTROL_request_callback
 };
 
-const USB_interface_t USBD_UAC_STREAM_PLAY_INTERFACE = {
+static const USB_interface_t USBD_UAC_STREAM_PLAY_INTERFACE = {
     .descriptor = &USB_UAC_STREAM_PLAY_INTERFACE_DESCRIPTOR,
     .endpoint_list = (const USB_endpoint_t**) &USBD_UAC_STREAM_PLAY_INTERFACE_EP_LIST,
     .number_of_endpoints = USBD_UAC_STREAM_PLAY_ENDPOINT_INDEX_LAST,
@@ -231,13 +237,38 @@ const USB_interface_t USBD_UAC_STREAM_PLAY_INTERFACE = {
     .request_callback = NULL
 };
 
-const USB_interface_t USBD_UAC_STREAM_RECORD_INTERFACE = {
+static const USB_interface_t USBD_UAC_STREAM_RECORD_INTERFACE = {
     .descriptor = &USB_UAC_STREAM_RECORD_INTERFACE_DESCRIPTOR,
     .endpoint_list = (const USB_endpoint_t**) &USBD_UAC_STREAM_RECORD_INTERFACE_EP_LIST,
     .number_of_endpoints = USBD_UAC_STREAM_RECORD_ENDPOINT_INDEX_LAST,
     .cs_descriptor = NULL,
     .cs_descriptor_length = NULL,
     .request_callback = NULL
+};
+
+static const USB_interface_t* USBD_UAC_INTERFACE_LIST[USBD_UAC_INTERFACE_INDEX_LAST] = {
+    &USBD_UAC_CONTROL_INTERFACE,
+    &USBD_UAC_STREAM_PLAY_INTERFACE,
+    &USBD_UAC_STREAM_RECORD_INTERFACE
+};
+
+static USB_interface_association_descriptor_t USBD_UAC_INTERFACE_ASSOCIATION_DESCRIPTOR = {
+    .bLength = sizeof(USB_interface_association_descriptor_t),
+    .bDescriptorType = USB_DESCRIPTOR_TYPE_INTERFACE_ASSOCIATION,
+    .bFirstInterface = USBD_UAC_CONTROL_INTERFACE_INDEX,
+    .bInterfaceCount = USBD_UAC_INTERFACE_INDEX_LAST,
+    .bFunctionClass = USB_CLASS_CODE_AUDIO,
+    .bFunctionSubClass = 0,
+    .bFunctionProtocol = 0,
+    .iFunction = USBD_UAC_INTERFACE_ASSOCIATION_STRING_DESCRIPTOR_INDEX
+};
+
+/*** USB UAC global variables ***/
+
+const USB_interface_association_t USBD_UAC_INTERFACE_ASSOCIATION = {
+    .descriptor = &USBD_UAC_INTERFACE_ASSOCIATION_DESCRIPTOR,
+    .interface_list = (const USB_interface_t**) &USBD_UAC_INTERFACE_LIST,
+    .number_of_interfaces = USBD_UAC_INTERFACE_INDEX_LAST
 };
 
 /*** USBD UAC local functions ***/
