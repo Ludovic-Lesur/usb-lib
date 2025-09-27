@@ -12,6 +12,7 @@
 #include "usb_lib_flags.h"
 #endif
 #include "common/usb_types.h"
+#include "types.h"
 
 #ifndef USB_LIB_DISABLE
 

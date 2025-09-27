@@ -7,6 +7,9 @@
 
 #include "device/usbd_hw.h"
 
+#ifndef USB_LIB_DISABLE_FLAGS_FILE
+#include "usb_lib_flags.h"
+#endif
 #include "common/usb_endpoint.h"
 #include "common/usb_types.h"
 #include "types.h"
