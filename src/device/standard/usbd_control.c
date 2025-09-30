@@ -47,12 +47,12 @@ typedef enum {
 
 /*******************************************************************/
 typedef union {
+    uint8_t all;
     struct {
         uint8_t in_request_pending :1;
         uint8_t out_request_pending :1;
         uint8_t init :1;
-    };
-    uint8_t all;
+    } __attribute__((scalar_storage_order("big-endian"))) __attribute__((packed));
 } USBD_CONTROL_flags_t;
 
 /*******************************************************************/

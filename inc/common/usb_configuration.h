@@ -19,13 +19,13 @@
  * \brief USB configuration descriptor attributes format.
  *******************************************************************/
 typedef union {
+    uint8_t value;
     struct {
         uint8_t reserved_4_0 :5;
         uint8_t remote_wakeup :1;
         uint8_t self_powered :1;
         uint8_t reserved_7 :1;
     } __attribute__((packed));
-    uint8_t value;
 } USB_configuration_bmAttributes_t;
 
 /*!******************************************************************

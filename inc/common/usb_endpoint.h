@@ -76,12 +76,12 @@ typedef enum {
  * \brief USB endpoint address descriptor format.
  *******************************************************************/
 typedef union {
+    uint8_t value;
     struct {
         uint8_t number :4;
         uint8_t reserved_6_4 :3;
         uint8_t direction :1;
     } __attribute__((packed));
-    uint8_t value;
 } USB_endpoint_bEndpointAddress_t;
 
 /*!******************************************************************
@@ -89,13 +89,13 @@ typedef union {
  * \brief USB endpoint attributes descriptor format.
  *******************************************************************/
 typedef union {
+    uint8_t value;
     struct {
         uint8_t transfer_type :2;
         uint8_t synchronization_type :2;
         uint8_t usage_type :2;
         uint8_t reserved_7_6 :2;
     } __attribute__((packed));
-    uint8_t value;
 } USB_endpoint_bmAttributes_t;
 
 /*!******************************************************************
@@ -103,12 +103,12 @@ typedef union {
  * \brief USB endpoint maximum packet size descriptor format.
  *******************************************************************/
 typedef union {
+    uint16_t value;
     struct {
         uint16_t max_packet_size :11;
         uint8_t transaction_per_microframe :2;
         uint8_t reserved_15_13 :3;
     } __attribute__((packed));
-    uint16_t value;
 } USB_endpoint_wMaxPacketSize_t;
 
 /*!******************************************************************

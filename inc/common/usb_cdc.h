@@ -168,12 +168,12 @@ typedef struct {
  * \brief USB CDC call capabilities format.
  *******************************************************************/
 typedef union {
+    uint8_t value;
     struct {
         uint8_t handle_itself :1;
         uint8_t call_class :1;
         uint8_t reserved_7_2 :6;
     } __attribute__((packed));
-    uint8_t value;
 } USB_CDC_call_bmCapabilities_t;
 
 /*!******************************************************************
@@ -193,6 +193,7 @@ typedef struct {
  * \brief USB CDC abstract capabilities format.
  *******************************************************************/
 typedef union {
+    uint8_t value;
     struct {
         uint8_t feature :1;
         uint8_t line_coding :1;
@@ -200,7 +201,6 @@ typedef union {
         uint8_t network_connection :1;
         uint8_t reserved_7_4 :4;
     } __attribute__((packed));
-    uint8_t value;
 } USB_CDC_abstract_bmCapabilities_t;
 
 /*!******************************************************************

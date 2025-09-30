@@ -82,12 +82,12 @@ typedef enum {
  * \brief USB request type descriptor format.
  *******************************************************************/
 typedef union {
+    uint8_t value;
     struct {
         uint8_t recipient :5;
         uint8_t type :2;
         uint8_t direction :1;
     } __attribute__((packed));
-    uint8_t value;
 } USB_request_bmRequestType_t;
 
 /*!******************************************************************

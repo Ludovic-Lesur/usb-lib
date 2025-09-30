@@ -20,10 +20,10 @@
 
 /*******************************************************************/
 typedef union {
+    uint8_t all;
     struct {
         uint8_t init :1;
-    };
-    uint8_t all;
+    } __attribute__((scalar_storage_order("big-endian"))) __attribute__((packed));
 } USBD_flags_t;
 
 /*******************************************************************/
