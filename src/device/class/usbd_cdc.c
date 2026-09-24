@@ -26,6 +26,8 @@
 #define USBD_CDC_CS_DESCRIPTOR_BUFFER_SIZE_BYTES    256
 #define USBD_CDC_CS_DESCRIPTOR_LENGTH_INDEX         0
 
+#define USBD_CDC_NUMBER_OF_INTERFACES               2
+
 /*** USBD CDC local structures ***/
 
 /*******************************************************************/
@@ -60,6 +62,15 @@ static void _USBD_CDC_DATA_endpoint_in_callback(void);
 static USB_status_t _USBD_CDC_COMM_request_callback(USB_request_t* request, USB_data_t* data_out, USB_data_t* data_in);
 
 /*** USB CDC local global variables ***/
+
+static USBD_CDC_context_t usbd_cdc_ctx = {
+    .cs_descriptor = { [0 ... (USBD_CDC_CS_DESCRIPTOR_BUFFER_SIZE_BYTES - 1)] = 0x00 },
+    .cs_descriptor_length = 0,
+    .line_coding.dwDTERate = 0,
+    .line_coding.bCharFormat = 0,
+    .line_coding.bParityType = 0,
+    .line_coding.bDataBits = 0
+};
 
 static const USB_physical_endpoint_t USBD_CDC_COMM_EP_PHY_IN = {
     .number = USBD_CDC_COMM_ENDPOINT_NUMBER,
@@ -224,18 +235,7 @@ static const uint8_t* const USB_CDC_DESCRIPTOR_LIST[] = {
     (uint8_t*) &USB_CDC_UNION_DESCRIPTOR
 };
 
-static USBD_CDC_context_t usbd_cdc_ctx = {
-    .cs_descriptor = { [0 ... (USBD_CDC_CS_DESCRIPTOR_BUFFER_SIZE_BYTES - 1)] = 0x00 },
-    .cs_descriptor_length = 0,
-    .line_coding.dwDTERate = 0,
-    .line_coding.bCharFormat = 0,
-    .line_coding.bParityType = 0,
-    .line_coding.bDataBits = 0
-};
-
-/*** USB CDC global variables ***/
-
-const USB_interface_t USBD_CDC_COMM_INTERFACE = {
+static const USB_interface_t USBD_CDC_COMM_INTERFACE = {
     .descriptor = &USB_CDC_COMM_INTERFACE_DESCRIPTOR,
     .endpoint_list = (const USB_endpoint_t**) &USBD_CDC_COMM_INTERFACE_EP_LIST,
     .number_of_endpoints = USBD_CDC_COMM_ENDPOINT_INDEX_LAST,
@@ -244,13 +244,37 @@ const USB_interface_t USBD_CDC_COMM_INTERFACE = {
     .request_callback = &_USBD_CDC_COMM_request_callback
 };
 
-const USB_interface_t USBD_CDC_DATA_INTERFACE = {
+static const USB_interface_t USBD_CDC_DATA_INTERFACE = {
     .descriptor = &USB_CDC_DATA_INTERFACE_DESCRIPTOR,
     .endpoint_list = (const USB_endpoint_t**) &USBD_CDC_DATA_INTERFACE_EP_LIST,
     .number_of_endpoints = USBD_CDC_DATA_ENDPOINT_INDEX_LAST,
     .cs_descriptor = NULL,
     .cs_descriptor_length = NULL,
     .request_callback = NULL
+};
+
+static const USB_interface_t* USBD_CDC_INTERFACE_LIST[USBD_CDC_NUMBER_OF_INTERFACES] = {
+    &USBD_CDC_COMM_INTERFACE,
+    &USBD_CDC_DATA_INTERFACE
+};
+
+static USB_interface_association_descriptor_t USBD_CDC_INTERFACE_ASSOCIATION_DESCRIPTOR = {
+    .bLength = sizeof(USB_interface_association_descriptor_t),
+    .bDescriptorType = USB_DESCRIPTOR_TYPE_INTERFACE_ASSOCIATION,
+    .bFirstInterface = USBD_CDC_COMM_INTERFACE_INDEX,
+    .bInterfaceCount = USBD_CDC_NUMBER_OF_INTERFACES,
+    .bFunctionClass = USB_CLASS_CODE_CDC_CONTROL,
+    .bFunctionSubClass = USB_CDC_SUBCLASS_CODE_ABSTRACT,
+    .bFunctionProtocol = USB_CDC_PROTOCOL_CODE_NONE,
+    .iFunction = USBD_CDC_INTERFACE_ASSOCIATION_STRING_DESCRIPTOR_INDEX
+};
+
+/*** USB CDC global variables ***/
+
+const USB_interface_association_t USBD_CDC_INTERFACE_ASSOCIATION = {
+    .descriptor = &USBD_CDC_INTERFACE_ASSOCIATION_DESCRIPTOR,
+    .interface_list = (const USB_interface_t**) &USBD_CDC_INTERFACE_LIST,
+    .number_of_interfaces = USBD_CDC_NUMBER_OF_INTERFACES
 };
 
 /*** USBD CDC local functions ***/

@@ -107,8 +107,7 @@ typedef struct {
 
 /*** USBD CDC global variables ***/
 
-extern const USB_interface_t USBD_CDC_COMM_INTERFACE;
-extern const USB_interface_t USBD_CDC_DATA_INTERFACE;
+extern const USB_interface_association_t USBD_CDC_INTERFACE_ASSOCIATION;
 
 /*** USBD CDC functions ***/
 
