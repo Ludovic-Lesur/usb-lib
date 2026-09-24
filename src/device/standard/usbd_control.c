@@ -292,7 +292,8 @@ static USB_status_t _USBD_CONTROL_build_full_configuration_descriptor(uint8_t in
         }
     }
     // Update total length field.
-    usbd_control_ctx.full_configuration_descriptor[USBD_CONTROL_DESCRIPTOR_TOTAL_LENGTH_INDEX] = full_idx;
+    usbd_control_ctx.full_configuration_descriptor[USBD_CONTROL_DESCRIPTOR_TOTAL_LENGTH_INDEX + 0] = (uint8_t) ((full_idx >> 0) & 0xFF);
+    usbd_control_ctx.full_configuration_descriptor[USBD_CONTROL_DESCRIPTOR_TOTAL_LENGTH_INDEX + 1] = (uint8_t) ((full_idx >> 8) & 0xFF);
 errors:
     return status;
 }
