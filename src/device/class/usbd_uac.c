@@ -26,6 +26,8 @@
 #define USBD_UAC_CS_DESCRIPTOR_BUFFER_SIZE_BYTES    1024
 #define USBD_UAC_CS_DESCRIPTOR_LENGTH_INDEX         0
 
+#define USBD_UAC_NUMBER_OF_INTERFACES               3
+
 /*** USBD UAC local structures ***/
 
 /*******************************************************************/
@@ -45,14 +47,6 @@ typedef enum {
     USBD_UAC_STREAM_RECORD_ENDPOINT_INDEX_IN = 0,
     USBD_UAC_STREAM_RECORD_ENDPOINT_INDEX_LAST
 } USBD_UAC_stream_record_endpoint_index_t;
-
-/*******************************************************************/
-typedef enum {
-    USBD_UAC_INTERFACE_INDEX_CONTROL = 0,
-    USBD_UAC_INTERFACE_INDEX_STREAM_PLAY,
-    USBD_UAC_INTERFACE_INDEX_STREAM_RECORD,
-    USBD_UAC_INTERFACE_INDEX_LAST
-} USBD_UAC_interface_index_t;
 
 /*******************************************************************/
 typedef struct {
@@ -246,7 +240,7 @@ static const USB_interface_t USBD_UAC_STREAM_RECORD_INTERFACE = {
     .request_callback = NULL
 };
 
-static const USB_interface_t* USBD_UAC_INTERFACE_LIST[USBD_UAC_INTERFACE_INDEX_LAST] = {
+static const USB_interface_t* USBD_UAC_INTERFACE_LIST[USBD_UAC_NUMBER_OF_INTERFACES] = {
     &USBD_UAC_CONTROL_INTERFACE,
     &USBD_UAC_STREAM_PLAY_INTERFACE,
     &USBD_UAC_STREAM_RECORD_INTERFACE
@@ -256,7 +250,7 @@ static USB_interface_association_descriptor_t USBD_UAC_INTERFACE_ASSOCIATION_DES
     .bLength = sizeof(USB_interface_association_descriptor_t),
     .bDescriptorType = USB_DESCRIPTOR_TYPE_INTERFACE_ASSOCIATION,
     .bFirstInterface = USBD_UAC_CONTROL_INTERFACE_INDEX,
-    .bInterfaceCount = USBD_UAC_INTERFACE_INDEX_LAST,
+    .bInterfaceCount = USBD_UAC_NUMBER_OF_INTERFACES,
     .bFunctionClass = USB_CLASS_CODE_AUDIO,
     .bFunctionSubClass = 0,
     .bFunctionProtocol = 0,
@@ -268,7 +262,7 @@ static USB_interface_association_descriptor_t USBD_UAC_INTERFACE_ASSOCIATION_DES
 const USB_interface_association_t USBD_UAC_INTERFACE_ASSOCIATION = {
     .descriptor = &USBD_UAC_INTERFACE_ASSOCIATION_DESCRIPTOR,
     .interface_list = (const USB_interface_t**) &USBD_UAC_INTERFACE_LIST,
-    .number_of_interfaces = USBD_UAC_INTERFACE_INDEX_LAST
+    .number_of_interfaces = USBD_UAC_NUMBER_OF_INTERFACES
 };
 
 /*** USBD UAC local functions ***/
