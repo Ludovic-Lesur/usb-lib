@@ -67,6 +67,11 @@ static USB_status_t _USBD_UAC_CONTROL_request_callback(USB_request_t* request, U
 
 /*** USBD UAC local global variables ***/
 
+static USBD_UAC_context_t usbd_uac_ctx = {
+    .cs_descriptor = { [0 ... (USBD_UAC_CS_DESCRIPTOR_BUFFER_SIZE_BYTES - 1)] = 0x00 },
+    .cs_descriptor_length = 0,
+};
+
 static const USB_physical_endpoint_t USBD_UAC_CONTROL_EP_PHY_IN = {
     .number = USBD_UAC_CONTROL_ENDPOINT_NUMBER,
     .direction = USB_ENDPOINT_DIRECTION_IN,
@@ -75,26 +80,6 @@ static const USB_physical_endpoint_t USBD_UAC_CONTROL_EP_PHY_IN = {
     .usage_type = USB_ENDPOINT_USAGE_TYPE_DATA,
     .max_packet_size_bytes = USBD_UAC_CONTROL_PACKET_SIZE_BYTES,
     .callback = &_USBD_UAC_CONTROL_endpoint_in_callback
-};
-
-static const USB_physical_endpoint_t USBD_UAC_STREAM_PLAY_EP_PHY_OUT = {
-    .number = USBD_UAC_STREAM_PLAY_ENDPOINT_NUMBER,
-    .direction = USB_ENDPOINT_DIRECTION_OUT,
-    .transfer_type = USB_ENDPOINT_TRANSFER_TYPE_ISOCHRONOUS,
-    .synchronization_type = USB_ENDPOINT_SYNCHRONIZATION_TYPE_NONE,
-    .usage_type = USB_ENDPOINT_USAGE_TYPE_DATA,
-    .max_packet_size_bytes = USBD_UAC_STREAM_PLAY_PACKET_SIZE_BYTES,
-    .callback = &_USBD_UAC_STREAM_PLAY_endpoint_out_callback
-};
-
-static const USB_physical_endpoint_t USBD_UAC_STREAM_RECORD_EP_PHY_IN = {
-    .number = USBD_UAC_STREAM_RECORD_ENDPOINT_NUMBER,
-    .direction = USB_ENDPOINT_DIRECTION_IN,
-    .transfer_type = USB_ENDPOINT_TRANSFER_TYPE_ISOCHRONOUS,
-    .synchronization_type = USB_ENDPOINT_SYNCHRONIZATION_TYPE_NONE,
-    .usage_type = USB_ENDPOINT_USAGE_TYPE_DATA,
-    .max_packet_size_bytes = USBD_UAC_STREAM_RECORD_PACKET_SIZE_BYTES,
-    .callback = &_USBD_UAC_STREAM_RECORD_endpoint_in_callback
 };
 
 static const USB_endpoint_descriptor_t USBD_UAC_CONTROL_EP_PHY_IN_DESCRIPTOR = {
@@ -113,7 +98,47 @@ static const USB_endpoint_descriptor_t USBD_UAC_CONTROL_EP_PHY_IN_DESCRIPTOR = {
     .bInterval = 255
 };
 
-static const USB_endpoint_descriptor_t USBD_UAC_STREAM_EP_PHY_OUT_DESCRIPTOR = {
+static const USB_endpoint_t USBD_UAC_CONTROL_EP_IN = {
+    .physical_endpoint = &USBD_UAC_CONTROL_EP_PHY_IN,
+    .descriptor = &USBD_UAC_CONTROL_EP_PHY_IN_DESCRIPTOR
+};
+
+static const USB_interface_descriptor_t USBD_UAC_CONTROL_INTERFACE_DESCRIPTOR = {
+    .bLength = sizeof(USB_interface_descriptor_t),
+    .bDescriptorType = USB_DESCRIPTOR_TYPE_INTERFACE,
+    .bInterfaceNumber = USBD_UAC_CONTROL_INTERFACE_INDEX,
+    .bAlternateSetting = 0,
+    .bNumEndpoints = USBD_UAC_CONTROL_ENDPOINT_INDEX_LAST,
+    .bInterfaceClass = USB_CLASS_CODE_AUDIO,
+    .bInterfaceSubClass = USB_UAC_SUBCLASS_CODE_AUDIO_CONTROL,
+    .bInterfaceProtocol = USB_UAC_PROTOCOL_CODE_IP_VERSION_02_00,
+    .iInterface = USBD_UAC_CONTROL_INTERFACE_STRING_DESCRIPTOR_INDEX
+};
+
+static const USB_endpoint_t* const USBD_UAC_CONTROL_INTERFACE_EP_LIST[USBD_UAC_CONTROL_ENDPOINT_INDEX_LAST] = {
+    &USBD_UAC_CONTROL_EP_IN
+};
+
+static const USB_interface_t USBD_UAC_CONTROL_INTERFACE = {
+    .descriptor = &USBD_UAC_CONTROL_INTERFACE_DESCRIPTOR,
+    .endpoint_list = (const USB_endpoint_t**) &USBD_UAC_CONTROL_INTERFACE_EP_LIST,
+    .number_of_endpoints = USBD_UAC_CONTROL_ENDPOINT_INDEX_LAST,
+    .cs_descriptor = (const uint8_t**) &(usbd_uac_ctx.cs_descriptor),
+    .cs_descriptor_length = &(usbd_uac_ctx.cs_descriptor_length),
+    .request_callback = &_USBD_UAC_CONTROL_request_callback
+};
+
+static const USB_physical_endpoint_t USBD_UAC_STREAM_PLAY_EP_PHY_OUT = {
+    .number = USBD_UAC_STREAM_PLAY_ENDPOINT_NUMBER,
+    .direction = USB_ENDPOINT_DIRECTION_OUT,
+    .transfer_type = USB_ENDPOINT_TRANSFER_TYPE_ISOCHRONOUS,
+    .synchronization_type = USB_ENDPOINT_SYNCHRONIZATION_TYPE_NONE,
+    .usage_type = USB_ENDPOINT_USAGE_TYPE_DATA,
+    .max_packet_size_bytes = USBD_UAC_STREAM_PLAY_PACKET_SIZE_BYTES,
+    .callback = &_USBD_UAC_STREAM_PLAY_endpoint_out_callback
+};
+
+static const USB_endpoint_descriptor_t USBD_UAC_STREAM_PLAY_EP_PHY_OUT_DESCRIPTOR = {
     .bLength = sizeof(USB_endpoint_descriptor_t),
     .bDescriptorType = USB_DESCRIPTOR_TYPE_ENDPOINT,
     .bEndpointAddress.number = USBD_UAC_STREAM_PLAY_EP_PHY_OUT.number,
@@ -129,7 +154,47 @@ static const USB_endpoint_descriptor_t USBD_UAC_STREAM_EP_PHY_OUT_DESCRIPTOR = {
     .bInterval = 1
 };
 
-static const USB_endpoint_descriptor_t USBD_UAC_STREAM_EP_PHY_IN_DESCRIPTOR = {
+static const USB_endpoint_t USBD_UAC_STREAM_PLAY_EP_OUT = {
+    .physical_endpoint = &USBD_UAC_STREAM_PLAY_EP_PHY_OUT,
+    .descriptor = &USBD_UAC_STREAM_PLAY_EP_PHY_OUT_DESCRIPTOR
+};
+
+static const USB_interface_descriptor_t USBD_UAC_STREAM_PLAY_INTERFACE_DESCRIPTOR = {
+    .bLength = sizeof(USB_interface_descriptor_t),
+    .bDescriptorType = USB_DESCRIPTOR_TYPE_INTERFACE,
+    .bInterfaceNumber = USBD_UAC_STREAM_PLAY_INTERFACE_INDEX,
+    .bAlternateSetting = 0,
+    .bNumEndpoints = USBD_UAC_STREAM_PLAY_ENDPOINT_INDEX_LAST,
+    .bInterfaceClass = USB_CLASS_CODE_AUDIO,
+    .bInterfaceSubClass = USB_UAC_SUBCLASS_CODE_AUDIO_STREAMING,
+    .bInterfaceProtocol = USB_UAC_PROTOCOL_CODE_IP_VERSION_02_00,
+    .iInterface = USBD_UAC_STREAM_PLAY_INTERFACE_STRING_DESCRIPTOR_INDEX
+};
+
+static const USB_endpoint_t* const USBD_UAC_STREAM_PLAY_INTERFACE_EP_LIST[USBD_UAC_STREAM_PLAY_ENDPOINT_INDEX_LAST] = {
+    &USBD_UAC_STREAM_PLAY_EP_OUT,
+};
+
+static const USB_interface_t USBD_UAC_STREAM_PLAY_INTERFACE = {
+    .descriptor = &USBD_UAC_STREAM_PLAY_INTERFACE_DESCRIPTOR,
+    .endpoint_list = (const USB_endpoint_t**) &USBD_UAC_STREAM_PLAY_INTERFACE_EP_LIST,
+    .number_of_endpoints = USBD_UAC_STREAM_PLAY_ENDPOINT_INDEX_LAST,
+    .cs_descriptor = NULL,
+    .cs_descriptor_length = NULL,
+    .request_callback = NULL
+};
+
+static const USB_physical_endpoint_t USBD_UAC_STREAM_RECORD_EP_PHY_IN = {
+    .number = USBD_UAC_STREAM_RECORD_ENDPOINT_NUMBER,
+    .direction = USB_ENDPOINT_DIRECTION_IN,
+    .transfer_type = USB_ENDPOINT_TRANSFER_TYPE_ISOCHRONOUS,
+    .synchronization_type = USB_ENDPOINT_SYNCHRONIZATION_TYPE_NONE,
+    .usage_type = USB_ENDPOINT_USAGE_TYPE_DATA,
+    .max_packet_size_bytes = USBD_UAC_STREAM_RECORD_PACKET_SIZE_BYTES,
+    .callback = &_USBD_UAC_STREAM_RECORD_endpoint_in_callback
+};
+
+static const USB_endpoint_descriptor_t USBD_UAC_STREAM_RECORD_EP_PHY_IN_DESCRIPTOR = {
     .bLength = sizeof(USB_endpoint_descriptor_t),
     .bDescriptorType = USB_DESCRIPTOR_TYPE_ENDPOINT,
     .bEndpointAddress.number = USBD_UAC_STREAM_RECORD_EP_PHY_IN.number,
@@ -145,58 +210,12 @@ static const USB_endpoint_descriptor_t USBD_UAC_STREAM_EP_PHY_IN_DESCRIPTOR = {
     .bInterval = 1
 };
 
-static const USB_endpoint_t USBD_UAC_CONTROL_EP_IN = {
-    .physical_endpoint = &USBD_UAC_CONTROL_EP_PHY_IN,
-    .descriptor = &USBD_UAC_CONTROL_EP_PHY_IN_DESCRIPTOR
-};
-
-static const USB_endpoint_t USBD_UAC_STREAM_PLAY_EP_OUT = {
-    .physical_endpoint = &USBD_UAC_STREAM_PLAY_EP_PHY_OUT,
-    .descriptor = &USBD_UAC_STREAM_EP_PHY_OUT_DESCRIPTOR
-};
-
 static const USB_endpoint_t USBD_UAC_STREAM_RECORD_EP_IN = {
     .physical_endpoint = &USBD_UAC_STREAM_RECORD_EP_PHY_IN,
-    .descriptor = &USBD_UAC_STREAM_EP_PHY_IN_DESCRIPTOR
+    .descriptor = &USBD_UAC_STREAM_RECORD_EP_PHY_IN_DESCRIPTOR
 };
 
-static const USB_endpoint_t* const USBD_UAC_CONTROL_INTERFACE_EP_LIST[USBD_UAC_CONTROL_ENDPOINT_INDEX_LAST] = {
-    &USBD_UAC_CONTROL_EP_IN
-};
-
-static const USB_endpoint_t* const USBD_UAC_STREAM_PLAY_INTERFACE_EP_LIST[USBD_UAC_STREAM_PLAY_ENDPOINT_INDEX_LAST] = {
-    &USBD_UAC_STREAM_PLAY_EP_OUT,
-};
-
-static const USB_endpoint_t* const USBD_UAC_STREAM_RECORD_INTERFACE_EP_LIST[USBD_UAC_STREAM_RECORD_ENDPOINT_INDEX_LAST] = {
-    &USBD_UAC_STREAM_RECORD_EP_IN,
-};
-
-static const USB_interface_descriptor_t USB_UAC_CONTROL_INTERFACE_DESCRIPTOR = {
-    .bLength = sizeof(USB_interface_descriptor_t),
-    .bDescriptorType = USB_DESCRIPTOR_TYPE_INTERFACE,
-    .bInterfaceNumber = USBD_UAC_CONTROL_INTERFACE_INDEX,
-    .bAlternateSetting = 0,
-    .bNumEndpoints = USBD_UAC_CONTROL_ENDPOINT_INDEX_LAST,
-    .bInterfaceClass = USB_CLASS_CODE_AUDIO,
-    .bInterfaceSubClass = USB_UAC_SUBCLASS_CODE_AUDIO_CONTROL,
-    .bInterfaceProtocol = USB_UAC_PROTOCOL_CODE_IP_VERSION_02_00,
-    .iInterface = USBD_UAC_CONTROL_INTERFACE_STRING_DESCRIPTOR_INDEX
-};
-
-static const USB_interface_descriptor_t USB_UAC_STREAM_PLAY_INTERFACE_DESCRIPTOR = {
-    .bLength = sizeof(USB_interface_descriptor_t),
-    .bDescriptorType = USB_DESCRIPTOR_TYPE_INTERFACE,
-    .bInterfaceNumber = USBD_UAC_STREAM_PLAY_INTERFACE_INDEX,
-    .bAlternateSetting = 0,
-    .bNumEndpoints = USBD_UAC_STREAM_PLAY_ENDPOINT_INDEX_LAST,
-    .bInterfaceClass = USB_CLASS_CODE_AUDIO,
-    .bInterfaceSubClass = USB_UAC_SUBCLASS_CODE_AUDIO_STREAMING,
-    .bInterfaceProtocol = USB_UAC_PROTOCOL_CODE_IP_VERSION_02_00,
-    .iInterface = USBD_UAC_STREAM_PLAY_INTERFACE_STRING_DESCRIPTOR_INDEX
-};
-
-static const USB_interface_descriptor_t USB_UAC_STREAM_RECORD_INTERFACE_DESCRIPTOR = {
+static const USB_interface_descriptor_t USBD_UAC_STREAM_RECORD_INTERFACE_DESCRIPTOR = {
     .bLength = sizeof(USB_interface_descriptor_t),
     .bDescriptorType = USB_DESCRIPTOR_TYPE_INTERFACE,
     .bInterfaceNumber = USBD_UAC_STREAM_RECORD_INTERFACE_INDEX,
@@ -208,31 +227,12 @@ static const USB_interface_descriptor_t USB_UAC_STREAM_RECORD_INTERFACE_DESCRIPT
     .iInterface = USBD_UAC_STREAM_RECORD_INTERFACE_STRING_DESCRIPTOR_INDEX
 };
 
-static USBD_UAC_context_t usbd_uac_ctx = {
-    .cs_descriptor = { [0 ... (USBD_UAC_CS_DESCRIPTOR_BUFFER_SIZE_BYTES - 1)] = 0x00 },
-    .cs_descriptor_length = 0,
-};
-
-static const USB_interface_t USBD_UAC_CONTROL_INTERFACE = {
-    .descriptor = &USB_UAC_CONTROL_INTERFACE_DESCRIPTOR,
-    .endpoint_list = (const USB_endpoint_t**) &USBD_UAC_CONTROL_INTERFACE_EP_LIST,
-    .number_of_endpoints = USBD_UAC_CONTROL_ENDPOINT_INDEX_LAST,
-    .cs_descriptor = (const uint8_t**) &(usbd_uac_ctx.cs_descriptor),
-    .cs_descriptor_length = &(usbd_uac_ctx.cs_descriptor_length),
-    .request_callback = &_USBD_UAC_CONTROL_request_callback
-};
-
-static const USB_interface_t USBD_UAC_STREAM_PLAY_INTERFACE = {
-    .descriptor = &USB_UAC_STREAM_PLAY_INTERFACE_DESCRIPTOR,
-    .endpoint_list = (const USB_endpoint_t**) &USBD_UAC_STREAM_PLAY_INTERFACE_EP_LIST,
-    .number_of_endpoints = USBD_UAC_STREAM_PLAY_ENDPOINT_INDEX_LAST,
-    .cs_descriptor = NULL,
-    .cs_descriptor_length = NULL,
-    .request_callback = NULL
+static const USB_endpoint_t* const USBD_UAC_STREAM_RECORD_INTERFACE_EP_LIST[USBD_UAC_STREAM_RECORD_ENDPOINT_INDEX_LAST] = {
+    &USBD_UAC_STREAM_RECORD_EP_IN,
 };
 
 static const USB_interface_t USBD_UAC_STREAM_RECORD_INTERFACE = {
-    .descriptor = &USB_UAC_STREAM_RECORD_INTERFACE_DESCRIPTOR,
+    .descriptor = &USBD_UAC_STREAM_RECORD_INTERFACE_DESCRIPTOR,
     .endpoint_list = (const USB_endpoint_t**) &USBD_UAC_STREAM_RECORD_INTERFACE_EP_LIST,
     .number_of_endpoints = USBD_UAC_STREAM_RECORD_ENDPOINT_INDEX_LAST,
     .cs_descriptor = NULL,
