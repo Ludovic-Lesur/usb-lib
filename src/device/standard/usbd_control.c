@@ -405,7 +405,11 @@ static USB_status_t _USBD_CONTROL_decode_request(void) {
     USB_status_t status = USB_SUCCESS;
     const USB_configuration_t* configuration_ptr = NULL;
     const USB_interface_t* interface_ptr = NULL;
+    const USB_interface_t* interface_target_ptr = NULL;
+    const USB_interface_association_t* interface_association_ptr = NULL;
     USB_request_t* request_ptr;
+    uint32_t idx = 0;
+    uint32_t jdx = 0;
     // Check data size.
     if ((usbd_control_ctx.setup_out.size_bytes) < sizeof(USB_request_t)) {
         status = USB_ERROR_REQUEST_SIZE;
@@ -426,20 +430,50 @@ static USB_status_t _USBD_CONTROL_decode_request(void) {
     case USB_REQUEST_TYPE_CLASS:
         // Search corresponding interface.
         configuration_ptr = usbd_control_ctx.device->configuration_list[usbd_control_ctx.current_configuration_index];
-        interface_ptr = configuration_ptr->interface_list[request_ptr->wIndex];
+        // Interfaces loop.
+        for (idx = 0; idx < (configuration_ptr->number_of_interfaces); idx++) {
+            // Update interface pointer.
+            interface_ptr = configuration_ptr->interface_list[idx];
+            // Check interface number.
+            if ((interface_ptr->descriptor->bInterfaceNumber) == (request_ptr->wIndex)) {
+                interface_target_ptr = interface_ptr;
+                goto callback;
+            }
+        }
+        // Interface associations loop.
+        for (idx = 0; idx < (configuration_ptr->number_of_interfaces_associations); idx++) {
+            // Update interface association pointer.
+            interface_association_ptr = configuration_ptr->interface_association_list[idx];
+            // Interfaces loop.
+            for (jdx = 0; jdx < (interface_association_ptr->number_of_interfaces); jdx++) {
+                // Update interface pointer.
+                interface_ptr = interface_association_ptr->interface_list[jdx];
+                // Check interface number.
+                if ((interface_ptr->descriptor->bInterfaceNumber) == (request_ptr->wIndex)) {
+                    interface_target_ptr = interface_ptr;
+                    goto callback;
+                }
+            }
+        }
+        // Check if interface has been found.
+        if (interface_target_ptr == NULL) {
+            status = USB_ERROR_CLASS_REQUEST_INTERFACE;
+            goto errors;
+        }
+callback:
         // Check request callback.
-        if (interface_ptr->request_callback == NULL) {
-            status = USB_ERROR_CLASS_REQUEST;
+        if (interface_target_ptr->request_callback == NULL) {
+            status = USB_ERROR_CLASS_REQUEST_CALLBACK;
             goto errors;
         }
         // Execute class specific callback.
-        status = interface_ptr->request_callback(request_ptr, &(usbd_control_ctx.data_out), &(usbd_control_ctx.data_in));
+        status = interface_target_ptr->request_callback(request_ptr, &(usbd_control_ctx.data_out), &(usbd_control_ctx.data_in));
         if (status != USB_SUCCESS) goto errors;
         break;
     case USB_REQUEST_TYPE_VENDOR:
         // Check vendor callback.
         if (usbd_control_ctx.callbacks->vendor_request == NULL) {
-            status = USB_ERROR_VENDOR_REQUEST;
+            status = USB_ERROR_VENDOR_REQUEST_CALLBACK;
             goto errors;
         }
         // Execute external callback.
