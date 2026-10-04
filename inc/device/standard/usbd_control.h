@@ -39,10 +39,6 @@ typedef struct {
     USB_request_cb_t vendor_request;
 } USBD_CONTROL_callbacks_t;
 
-/*** USBD CONTROL global variables ***/
-
-extern const USB_interface_t USBD_CONTROL_INTERFACE;
-
 /*** USB functions ***/
 
 /*!******************************************************************

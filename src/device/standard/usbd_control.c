@@ -63,6 +63,7 @@ typedef struct {
     USB_request_operation_t request_operation;
     uint8_t current_configuration_index;
     uint8_t full_configuration_descriptor[USBD_CONTROL_DESCRIPTOR_BUFFER_SIZE_BYTES];
+    uint32_t full_configuration_descriptor_length;
     uint8_t string_descriptor[USBD_CONTROL_DESCRIPTOR_BUFFER_SIZE_BYTES];
     USB_data_t setup_out;
     USB_data_t data_out;
@@ -138,34 +139,13 @@ static const USB_endpoint_t* const USBD_CONTROL_EP_LIST[USBD_CONTROL_ENDPOINT_IN
     &USBD_CONTROL_EP_IN
 };
 
-static const USB_interface_descriptor_t USBD_CONTROL_INTERFACE_DESCRIPTOR = {
-    .bLength = sizeof(USB_interface_descriptor_t),
-    .bDescriptorType = USB_DESCRIPTOR_TYPE_INTERFACE,
-    .bInterfaceNumber = USBD_CONTROL_INTERFACE_INDEX,
-    .bAlternateSetting = 0,
-    .bInterfaceClass = 0,
-    .bInterfaceSubClass = 0,
-    .bInterfaceProtocol = 0,
-    .iInterface = USBD_CONTROL_INTERFACE_STRING_DESCRIPTOR_INDEX
-};
-
 static USBD_CONTROL_context_t usbd_control_ctx = {
     .flags.all = 0,
     .device = NULL,
     .callbacks = NULL,
     .request_operation = USB_REQUEST_OPERATION_NOT_SUPPORTED,
-    .current_configuration_index = 0
-};
-
-/*** USBD CONTROL global variables ***/
-
-const USB_interface_t USBD_CONTROL_INTERFACE = {
-    .descriptor = &USBD_CONTROL_INTERFACE_DESCRIPTOR,
-    .number_of_endpoints = USBD_CONTROL_ENDPOINT_INDEX_LAST,
-    .endpoint_list = (const USB_endpoint_t**) &USBD_CONTROL_EP_LIST,
-    .cs_descriptor = NULL,
-    .cs_descriptor_length = NULL,
-    .request_callback = &_USBD_CONTROL_standard_request_callback
+    .current_configuration_index = 0,
+    .full_configuration_descriptor_length = 0
 };
 
 /*** USBD CONTROL local functions ***/
@@ -268,7 +248,7 @@ static USB_status_t _USBD_CONTROL_build_full_configuration_descriptor(uint8_t in
         _USBD_CONTROL_full_configuration_descriptor_add_byte(descriptor_ptr[idx]);
     }
     // Interfaces loop.
-    for (interface_idx = (USBD_CONTROL_INTERFACE_INDEX + 1); interface_idx < (configuration_ptr->number_of_interfaces); interface_idx++) {
+    for (interface_idx = 0; interface_idx < (configuration_ptr->number_of_interfaces); interface_idx++) {
         // Update pointer.
         interface_ptr = configuration_ptr->interface_list[interface_idx];
         // Build interface descriptor.
@@ -294,6 +274,8 @@ static USB_status_t _USBD_CONTROL_build_full_configuration_descriptor(uint8_t in
     // Update total length field.
     usbd_control_ctx.full_configuration_descriptor[USBD_CONTROL_DESCRIPTOR_TOTAL_LENGTH_INDEX + 0] = (uint8_t) ((full_idx >> 0) & 0xFF);
     usbd_control_ctx.full_configuration_descriptor[USBD_CONTROL_DESCRIPTOR_TOTAL_LENGTH_INDEX + 1] = (uint8_t) ((full_idx >> 8) & 0xFF);
+    // Store total length.
+    usbd_control_ctx.full_configuration_descriptor_length = full_idx;
 errors:
     return status;
 }
@@ -325,8 +307,8 @@ static USB_status_t _USBD_CONTROL_get_descriptor(USB_descriptor_type_t type, uin
         status = _USBD_CONTROL_build_full_configuration_descriptor(index);
         if (status != USB_SUCCESS) goto errors;
         // Update pointers.
-        (*descriptor_ptr) = (uint8_t*) &(usbd_control_ctx.full_configuration_descriptor);
-        (*descriptor_size_bytes) = usbd_control_ctx.full_configuration_descriptor[USBD_CONTROL_DESCRIPTOR_TOTAL_LENGTH_INDEX];
+        (*descriptor_ptr) = (uint8_t*) (usbd_control_ctx.full_configuration_descriptor);
+        (*descriptor_size_bytes) = usbd_control_ctx.full_configuration_descriptor_length;
         break;
     case USB_DESCRIPTOR_TYPE_STRING:
         // Check index.
@@ -348,8 +330,8 @@ static USB_status_t _USBD_CONTROL_get_descriptor(USB_descriptor_type_t type, uin
                 usbd_control_ctx.string_descriptor[full_idx++] = 0x00;
             }
         }
-        (*descriptor_ptr) = (uint8_t*) &(usbd_control_ctx.string_descriptor);
-        (*descriptor_size_bytes) = usbd_control_ctx.string_descriptor[0];
+        (*descriptor_ptr) = (uint8_t*) (usbd_control_ctx.string_descriptor);
+        (*descriptor_size_bytes) = full_idx;
         break;
     default:
         status = USB_ERROR_DESCRIPTOR_TYPE;
@@ -438,7 +420,7 @@ static USB_status_t _USBD_CONTROL_decode_request(void) {
     switch (request_ptr->bmRequestType.type) {
     case USB_REQUEST_TYPE_STANDARD:
         // Decode standard request.
-        status = _USBD_CONTROL_standard_request_callback(request_ptr, &usbd_control_ctx.data_out, &(usbd_control_ctx.data_in));
+        status = _USBD_CONTROL_standard_request_callback(request_ptr, &(usbd_control_ctx.data_out), &(usbd_control_ctx.data_in));
         if (status != USB_SUCCESS) goto errors;
         break;
     case USB_REQUEST_TYPE_CLASS:
@@ -451,7 +433,7 @@ static USB_status_t _USBD_CONTROL_decode_request(void) {
             goto errors;
         }
         // Execute class specific callback.
-        status = interface_ptr->request_callback(request_ptr, &usbd_control_ctx.data_out, &(usbd_control_ctx.data_in));
+        status = interface_ptr->request_callback(request_ptr, &(usbd_control_ctx.data_out), &(usbd_control_ctx.data_in));
         if (status != USB_SUCCESS) goto errors;
         break;
     case USB_REQUEST_TYPE_VENDOR:
@@ -461,7 +443,7 @@ static USB_status_t _USBD_CONTROL_decode_request(void) {
             goto errors;
         }
         // Execute external callback.
-        status = usbd_control_ctx.callbacks->vendor_request(request_ptr, &usbd_control_ctx.data_out, &(usbd_control_ctx.data_in));
+        status = usbd_control_ctx.callbacks->vendor_request(request_ptr, &(usbd_control_ctx.data_out), &(usbd_control_ctx.data_in));
         if (status != USB_SUCCESS) goto errors;
         break;
     default:
@@ -486,7 +468,7 @@ static USB_status_t _USBD_CONTROL_process_request(void) {
     // Check if there is IN data to send.
     if ((usbd_control_ctx.data_in.data != NULL) && (usbd_control_ctx.data_in.size_bytes != 0)) {
         // Send data to host.
-        status = USBD_HW_write_data((USB_physical_endpoint_t*) &USBD_CONTROL_EP_PHY_IN, &usbd_control_ctx.data_in);
+        status = USBD_HW_write_data((USB_physical_endpoint_t*) &USBD_CONTROL_EP_PHY_IN, &(usbd_control_ctx.data_in));
         if (status != USB_SUCCESS) goto errors;
         // Update flag.
         usbd_control_ctx.flags.in_request_pending = 1;
@@ -538,7 +520,7 @@ static void _USBD_CONTROL_endpoint_out_callback(void) {
     // Check flag.
     if (usbd_control_ctx.flags.out_request_pending != 0) {
         // Read OUT data bytes.
-        status = USBD_HW_read_data((USB_physical_endpoint_t*) &USBD_CONTROL_EP_PHY_OUT, &usbd_control_ctx.data_out);
+        status = USBD_HW_read_data((USB_physical_endpoint_t*) &USBD_CONTROL_EP_PHY_OUT, &(usbd_control_ctx.data_out));
         if (status != USB_SUCCESS) goto errors;
         // Process request.
         status = _USBD_CONTROL_process_request();
@@ -579,8 +561,8 @@ USB_status_t USBD_CONTROL_init(const USB_device_t* device, USBD_CONTROL_callback
     usbd_control_ctx.device = device;
     usbd_control_ctx.callbacks = control_callbacks;
     // Register endpoints.
-    for (idx = 0; idx < (USBD_CONTROL_INTERFACE.number_of_endpoints); idx++) {
-        status = USBD_HW_register_endpoint((USB_physical_endpoint_t*) ((USBD_CONTROL_INTERFACE.endpoint_list)[idx]->physical_endpoint));
+    for (idx = 0; idx < USBD_CONTROL_ENDPOINT_INDEX_LAST; idx++) {
+        status = USBD_HW_register_endpoint((USB_physical_endpoint_t*) (USBD_CONTROL_EP_LIST[idx]->physical_endpoint));
         if (status != USB_SUCCESS) goto errors;
     }
     // Register setup callback.
@@ -607,8 +589,8 @@ USB_status_t USBD_CONTROL_de_init(void) {
     usbd_control_ctx.device = NULL;
     usbd_control_ctx.callbacks = NULL;
     // Unregister endpoints.
-    for (idx = 0; idx < (USBD_CONTROL_INTERFACE.number_of_endpoints); idx++) {
-        status = USBD_HW_unregister_endpoint((USB_physical_endpoint_t*) ((USBD_CONTROL_INTERFACE.endpoint_list)[idx]->physical_endpoint));
+    for (idx = 0; idx < USBD_CONTROL_ENDPOINT_INDEX_LAST; idx++) {
+        status = USBD_HW_unregister_endpoint((USB_physical_endpoint_t*) (USBD_CONTROL_EP_LIST[idx]->physical_endpoint));
         if (status != USB_SUCCESS) goto errors;
     }
     // Update initialization flag.

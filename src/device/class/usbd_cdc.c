@@ -232,7 +232,6 @@ static USB_interface_association_descriptor_t USBD_CDC_INTERFACE_ASSOCIATION_DES
     .iFunction = USBD_CDC_INTERFACE_ASSOCIATION_STRING_DESCRIPTOR_INDEX
 };
 
-
 static const USB_CDC_header_descriptor_t USBD_CDC_HEADER_DESCRIPTOR = {
     .bFunctionLength = sizeof(USB_CDC_header_descriptor_t),
     .bDescriptorType = USB_DESCRIPTOR_TYPE_CLASS_SPECIFIC_INTERFACE,
