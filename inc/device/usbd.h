@@ -11,7 +11,9 @@
 #ifndef USB_LIB_DISABLE_FLAGS_FILE
 #include "usb_lib_flags.h"
 #endif
+#include "common/usb_device.h"
 #include "common/usb_types.h"
+#include "device/standard/usbd_control.h"
 #include "types.h"
 
 #ifndef USB_LIB_DISABLE
@@ -21,11 +23,12 @@
 /*!******************************************************************
  * \fn USB_status_t USBD_init(void)
  * \brief Init USB device library and hardware interface.
- * \param[in]   none
+ * \param[in]   device: Pointer to the USB device structure.
+ * \param[in]   control_callbacks: Pointer to the control pipe callbacks.
  * \param[out]  none
  * \retval      Function execution status.
  *******************************************************************/
-USB_status_t USBD_init(void);
+USB_status_t USBD_init(const USB_device_t* device, USBD_CONTROL_callbacks_t* control_callbacks);
 
 /*!******************************************************************
  * \fn USB_status_t USBD_de_init(void)

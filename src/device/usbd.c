@@ -10,7 +10,9 @@
 #ifndef USB_LIB_DISABLE_FLAGS_FILE
 #include "usb_lib_flags.h"
 #endif
+#include "common/usb_device.h"
 #include "common/usb_types.h"
+#include "device/standard/usbd_control.h"
 #include "device/usbd_hw.h"
 #include "types.h"
 
@@ -40,7 +42,7 @@ static USBD_context_t usbd_ctx = {
 /*** USBD functions ***/
 
 /*******************************************************************/
-USB_status_t USBD_init(void) {
+USB_status_t USBD_init(const USB_device_t* device, USBD_CONTROL_callbacks_t* control_callbacks) {
     // Local variables.
     USB_status_t status = USB_SUCCESS;
     // Check state.
@@ -48,11 +50,14 @@ USB_status_t USBD_init(void) {
         status = USB_ERROR_ALREADY_INITIALIZED;
         goto errors;
     }
+    // Init context.
+    usbd_ctx.flags.all = 0;
     // Init hardware interface.
     status = USBD_HW_init();
     if (status != USB_SUCCESS) goto errors;
-    // Init context.
-    usbd_ctx.flags.all = 0;
+    // Init control pipe.
+    status = USBD_CONTROL_init(device, control_callbacks);
+    if (status != USB_SUCCESS) goto errors;
     // Update initialization flag.
     usbd_ctx.flags.init = 1;
 errors:
@@ -68,7 +73,10 @@ USB_status_t USBD_de_init(void) {
         status = USB_ERROR_UNINITIALIZED;
         goto errors;
     }
-    // Init hardware interface.
+    // Release control pipe.
+    status = USBD_CONTROL_de_init();
+    if (status != USB_SUCCESS) goto errors;
+    // Release hardware interface.
     status = USBD_HW_de_init();
     if (status != USB_SUCCESS) goto errors;
     // Update initialization flag.
